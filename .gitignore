@@ -15,3 +15,7 @@ songs/**/*.opus
 songs/**/*.wav
 songs/**/*.flac
 songs/manifest.json
+# local runtime artifacts (probes / relay)
+diag-log.jsonl
+tools/relay.log
+tools/shots/

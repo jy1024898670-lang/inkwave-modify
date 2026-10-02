@@ -32,7 +32,7 @@
 // engine's 2.4 threshold: soft glow / star glint / bubble / halo ring), rings (normal-aligned decal quads: ink shockwave,
 // ripple, splash disc, bomb danger ring, super-jump target, dust ring, splat blot, thin shockwave), shells (displaced ink
 // spheres), beams (geysers + immediate light pillars), motes. Peak geometry ≈ 2 tris per sprite/droplet + 320/shell +
-// 336/beam — a heavy moment (bomb + slam + 8 players fighting) stays ≈ 10–16k triangles.
+// 336/beam — a heavy moment (bomb + slam + 10 players fighting) stays ≈ 10–16k triangles.
 import * as THREE from 'three';
 import { QUALITY, PLAYER } from '../config.js';
 

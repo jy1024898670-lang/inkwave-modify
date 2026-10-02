@@ -73,7 +73,7 @@ water in a spray). Budget: ≤ 150k tris hero, ≤ 60 draw calls; must hold 60 f
 
 ### UI
 - HUD: boss bar (name, HP with phase notches, damage chip-away, weak-point flash), title-card intro, move callouts
-  (subtle), stun "OPEN!" prompt, squad status (replaces the 4v4 squads), timer. Results: VICTORY/DEFEAT with boss time,
+  (subtle), stun "OPEN!" prompt, squad status (replaces the 5v5 squads), timer. Results: VICTORY/DEFEAT with boss time,
   per-player damage, weak-point hits, splats, turf.
 - Menus: mode choice in the offline Play flow (Turf War | Boss Battle) and in the online lobby host settings (locked
   team picker → "SQUAD" in boss mode).

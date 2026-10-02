@@ -5,12 +5,12 @@
 <h1 align="center">INKWAVE</h1>
 
 <p align="center">
-  An original Splatoon-style 4v4 turf-war shooter that runs in your browser.<br>
+  An original Splatoon-style 5v5 turf-war shooter that runs in your browser.<br>
   Paint the ground, swim through your ink, out-turf the other team.
 </p>
 
 <p align="center">
-  <a href="https://inkwave-aah.pages.dev"><b>▶ Play now</b></a> ·
+  <a href="https://inkwave-2cc.pages.dev"><b>▶ Play now</b></a> ·
   <a href="#controls">Controls</a> ·
   <a href="#playing-online">Online</a> ·
   <a href="#running-locally">Run locally</a> ·
@@ -29,8 +29,8 @@
 
 ## Features
 
-- **Game modes, 4 v 4.** Turf War (most ground painted wins) and Zone Control (hold the live zone to count down from 100 — rotating side zones, penalties, overtime). Play against bots on three difficulty levels.
-- **Online with friends.** Create a private room, share the five-character code, and up to eight players line up in the lobby with their loadouts and looks. Empty slots fill with bots; if someone drops, a bot takes over their squidkid mid-match.
+- **Game modes, 5 v 5.** Turf War (most ground painted wins) and Zone Control (hold the live zone to count down from 100 — rotating side zones, penalties, overtime). Play against bots on three difficulty levels.
+- **Online with friends.** Create a private room, share the five-character code, and up to ten players line up in the lobby with their loadouts and looks. Empty slots fill with bots; if someone drops, a bot takes over their squidkid mid-match.
 - **Squid form.** Hold to dive into your ink: swim fast, refill your tank, climb inked walls, dolphin-jump water gaps.
 - **Twelve weapons**, each with its own feel: Spritzer, Twinfire Pistols, Canopy Brolly (shotgun + launchable shield), Popper Blaster, Squall Spinner, Glint Charger, Tideline Bow (tri-arrow, two charge rings), Swell Roller, Swish Brush, Brine Cutlass (charged one-hit blade), Sponge Mitts (ink fists, charged leap, wall cling) and Bilge Bucket. Mix any main with any of 15 subs and 19 specials.
 - **Seven stages, day or dusk.** Tidewater Plaza, Kelpline Terminal, Halyard Marina, Saltpan Basin, Crossroads Market, Lockgate Canals and Terrace Heights, each a real place with its own layout. Some stages change a few pieces for Zone Control.

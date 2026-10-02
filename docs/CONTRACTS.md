@@ -1,6 +1,6 @@
 # INKWAVE — module contracts
 
-INKWAVE is an original, Splatoon-inspired 4v4 turf-war shooter built on three.js r186 (plain ES modules, no bundler).
+INKWAVE is an original, Splatoon-inspired 5v5 turf-war shooter built on three.js r186 (plain ES modules, no bundler).
 Everything is procedural: no external models, textures or audio files. Fonts are vendored.
 
 - Serve: `python3 -m http.server 8490 --directory ~/inkwave` → http://localhost:8490/

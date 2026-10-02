@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { G, on, emit, clamp, damp } from './core/ctx.js';
 import { Renderer } from './core/renderer.js';
 import { Input } from './core/input.js';
+import { installDiag, diagTick } from './core/diag.js';
 import { mapTheme,
   DEFAULT_SETTINGS, QUALITY, TEAM_PALETTES, COLORBLIND_PALETTE, TEAM_NAMES, WEAPONS, WEAPON_ORDER, WEAPON_SUCCESSOR, ZONES, SUB, SUBS, SUB_ORDER, SPECIALS, SPECIAL_ORDER,
   MAPS, DIFFICULTY, PLAYER, PROGRESSION, VERSION, MATCH, OFFLINE_MAPS, mapOfflineOk, mapNoBots, mapBossOk,
@@ -54,6 +55,9 @@ async function loadModule(path, stubName) {
 class Game {
   async boot() {
     const t0 = performance.now();
+    // i18n first: the language toggle button exists before any menu is built, and the observer
+    // translates everything the UI adds afterwards (DOM mutation based — no call-site edits)
+    try { (await import('./i18n.js')).installI18n(); } catch (e) { console.error('[inkwave] i18n', e); }
     // real top-down thumbnails for the stage cards, generated from each layout's geometry
     for (const m of MAPS) { try { m.thumb = layoutThumbSVG(MAP_LAYOUTS[m.layout || m.id], m.theme); } catch (e) { console.warn('thumb', m.id, e); } }
     this.settings = G.settings = loadJSON('inkwave.settings', DEFAULT_SETTINGS);
@@ -85,6 +89,27 @@ class Game {
     // renderer / scene
     this.R = new Renderer(app, this.settings);
     G.renderer = this.R.renderer;
+    installDiag({ canvas: this.R.renderer.domElement, R: this.R });   // auto-on from localhost; ?diag=1 forces it
+    // Black-flash guard: while the GPU context is lost (momentary driver resets on real hardware
+    // blank the canvas until three.js reinitializes) cover the screen instead of showing a black flash.
+    {
+      const el = document.createElement('div');
+      el.id = 'gl-lost';
+      el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:radial-gradient(130% 130% at 50% 0%, #14405f 0%, #0a2136 55%, #061524 100%);color:#eaf6ff;text-align:center;';
+      const logo = document.createElement('div');
+      logo.textContent = 'INKWAVE';
+      logo.style.cssText = 'font-family:"Titan One","Bangers",cursive;font-size:54px;letter-spacing:6px;text-shadow:0 4px 0 rgba(0,0,0,.35);';
+      const msg = document.createElement('div');
+      msg.id = 'gl-lost-msg';
+      msg.textContent = '显卡连接中断，正在重连…';
+      msg.style.cssText = 'font-size:18px;opacity:.92;';
+      el.append(logo, msg);
+      document.body.appendChild(el);
+      const canvas = this.R.renderer.domElement;
+      canvas.addEventListener('webglcontextlost', () => { el.style.display = 'flex'; msg.textContent = '显卡连接中断，正在重连…'; el.dataset.since = Date.now(); });
+      canvas.addEventListener('webglcontextrestored', () => { setTimeout(() => { el.style.display = 'none'; }, 300); });
+      setInterval(() => { if (el.style.display === 'flex' && Date.now() - +el.dataset.since > 15000) msg.textContent = '显卡长时间未恢复 — 请刷新页面重试'; }, 5000);
+    }
     const scene = (G.scene = new THREE.Scene());
     const camera = (G.camera = new THREE.PerspectiveCamera(this.settings.fov, innerWidth / innerHeight, 0.15, 6500));
     camera.position.set(0, 40, -60);
@@ -705,6 +730,7 @@ class Game {
     await this._warmCharacters(m);
     this.minimap.setViewerTeam(0);
     G.mode = 'match';
+    document.body.classList.add('iw-match-on');   // hides the floating language toggle (i18n.js)
     this.hud?.setVisible(false);
     this.hudPrompt = null; this._hintT = 0; this._hints = {};
     this.hud?.setPractice?.(practice);
@@ -798,6 +824,7 @@ class Game {
     this.lastMatchOpts = null;
     this.minimap.setViewerTeam(m.local ? m.local.team : 0);
     G.mode = 'match';
+    document.body.classList.add('iw-match-on');   // hides the floating language toggle (i18n.js)
     this.hud?.setVisible(false);
     this.hudPrompt = null; this._hintT = 0; this._hints = {};
     // hold on the stage (not black) while the others finish loading
@@ -832,6 +859,7 @@ class Game {
       this.hud?.hideSplatted?.();
       this.showcase.hide();
       G.mode = 'menu';
+      document.body.classList.remove('iw-match-on');
       G.net?.endMatch();
       this._startAttract();
       this.menus?.show(this.menus?.hasScreen?.('lobby') === false ? 'main' : 'lobby');
@@ -886,7 +914,10 @@ class Game {
     this.menus?.show(null);
     this.match.paused = false;
     if (this.match.controller) this.match.controller.enabled = true;
-    this.input.requestLock();
+    const lp = this.input.requestLock();
+    // resuming from Esc: the browser may refuse the lock (Esc-release cooldown / keyboard gesture) — the next
+    // click on the game takes the mouse back (the existing _relock mousedown path)
+    if (lp && lp.catch) lp.catch(() => { this._relock = true; });
     G.audio?.duck?.(1, 0.01);
     G.music?.resume?.();
   }
@@ -900,6 +931,7 @@ class Game {
     this.hud?.hideSplatted?.();
     this.showcase.hide();
     G.mode = 'menu';
+    document.body.classList.remove('iw-match-on');
     this._setPalette(this._pickPalette());
     this._startAttract();
     this.hud?.setPractice?.(false);
@@ -1057,7 +1089,8 @@ class Game {
     this.fpsAcc += dt; this.fpsN++;
     if (this.fpsAcc > 0.5) { this.fps = Math.round(this.fpsN / this.fpsAcc); this.fpsAcc = 0; this.fpsN = 0; }
     this._dynRes(dt);
-    dt = Math.min(dt, 1 / 24);
+    // diag mode: fast-forward the sim (0.25 s step cap) so a whole mock match fits in a capture window
+    dt = Math.min(dt, params.has('diag') ? 0.25 : 1 / 24);
     this._frame(dt);
   }
 
@@ -1198,6 +1231,7 @@ class Game {
     const ps = this.perf || (this.perf = { sim: 0, render: 0, calls: 0, tris: 0 });
     ps.sim += (tB - tA - ps.sim) * 0.05; ps.render += (tC - tB - ps.render) * 0.05;
     ps.calls = G.renderer.info.render.calls; ps.tris = G.renderer.info.render.triangles;
+    diagTick(this, dt);   // diagnostics: state transitions + black-frame pixel probe (+ long frames)
     // HUD
     if (m && !m.attract && this.hud && (m.state === 'playing' || m.state === 'intro' || m.state === 'finish')) this._updateHud(dt);
     this.menus?.update?.(dt);

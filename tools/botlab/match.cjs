@@ -2,7 +2,7 @@
 // doesn't change the result), as fast as the machine allows. See tools/botlab/README.md.
 //   MAP=halyard MODE=turf SECS=180 tools/botlab/run.sh tools/botlab/match.cjs
 //   MODE=zones plays a full 5:00 (+ overtime) Zone Control match; MODE=turf plays SECS seconds of Turf War.
-//   WEAPONS / SUBS equip the 8 players (slot order = team 0 first): 'all=bow' · 'team0=blade;team1=shooter' ·
+//   WEAPONS / SUBS equip the 10 players (slot order = team 0 first): 'all=bow' · 'team0=blade;team1=shooter' ·
 //   'blade,blade,shooter,…' (per slot, blank = keep) · unset = the usual random loadouts.
 //   TRACK=<weapon> (+ TRACK_TEAM=0|1): a closer look at the players on that weapon (see trk below).
 //   TUNE='mitts.punchInterval=0.12,mitts.punchDamage=45': what-if tuning for this run only (WEAPONS / SUBS values).

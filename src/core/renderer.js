@@ -11,8 +11,18 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { QUALITY } from '../config.js';
 import { G } from './ctx.js';
+import { diagPipeline } from './diag.js';
 
 const BLOOM = [0.28, 0.45, 2.4];   // default bloom: strength, radius, HDR threshold
+// Diagnostic pipeline overrides — A/B tests for the real-GPU flicker (read back via diag-log.jsonl,
+// see tools/diag-analyze.cjs): ?msaa=0 forces SMAA, ?ao=0 drops GTAO, ?hf=0 renders the HDR target
+// as byte instead of half-float, ?post=0 bypasses the whole composer, ?sfx=0 drops the screen-FX pass.
+const QP = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
+const NO_MSAA = QP.get('msaa') === '0';
+const NO_AO = QP.get('ao') === '0';
+const NO_HF = QP.get('hf') === '0';
+const NO_POST = QP.get('post') === '0';
+const NO_SFX = QP.get('sfx') === '0';
 
 const GradeShader = {
   uniforms: {
@@ -95,6 +105,13 @@ export class Renderer {
     r.setClearColor(0x9fd8f0, 1);
     container.appendChild(r.domElement);
     this.appleGPU = isAppleGPU(r.getContext());
+    // D3D11/ANGLE (Windows): the post chain's half-float render targets intermittently resolve to black frames on real
+    // hardware (A/B: full stack 2.1 black frames/min; MSAA or GTAO off alone → ~0.2/min; ?post=0 → 0). On that backend
+    // run the proven single-sample profile and make the whole chain 8-bit; ?d3d11fix=0|1 overrides the detection.
+    const gl = r.getContext();
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    const gpuName = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+    this.d3d11 = QP.get('d3d11fix') !== '0' && (QP.get('d3d11fix') === '1' || /Direct3D11|D3D11/i.test(gpuName));
     r.domElement.id = 'game-canvas';
     this.container = container;
     this.scene = null; this.camera = null;
@@ -116,16 +133,17 @@ export class Renderer {
     r.setPixelRatio(pr);
     const w = window.innerWidth, h = window.innerHeight;
     r.setSize(w, h);
-    // effective MSAA sample count (also read by the showcase for its private target)
-    this.samples = this.appleGPU ? 0 : q.msaa || 0;
-    const rt = new THREE.WebGLRenderTarget(w * pr, h * pr, { type: THREE.HalfFloatType, samples: this.samples });
+    // effective MSAA sample count (also read by the showcase for its private target); ?msaa=0 forces SMAA
+    this._byteRT = NO_HF || this.d3d11;
+    this.samples = (NO_MSAA || this.appleGPU || this.d3d11) ? 0 : q.msaa || 0;
+    const rt = new THREE.WebGLRenderTarget(w * pr, h * pr, { type: this._byteRT ? THREE.UnsignedByteType : THREE.HalfFloatType, samples: this.samples });
     const comp = (this.composer = new EffectComposer(r, rt));
     comp.setPixelRatio(pr);
     comp.setSize(w, h);
     this.renderPass = new RenderPass(this.scene, this.camera);
     comp.addPass(this.renderPass);
     this.gtao = null;
-    if (q.ao) {
+    if (!NO_AO && q.ao) {
       const ao = (this.gtao = new GTAOPass(this.scene, this.camera, w, h));
       ao.output = GTAOPass.OUTPUT.Default;
       ao.blendIntensity = 0.8;   // never crush to black: fully enclosed spots (tunnel mouths, under the overpass) keep 20 % of their light
@@ -134,28 +152,60 @@ export class Renderer {
       ao.updateGtaoMaterial({ radius: 1.1, distanceExponent: 1.6, thickness: 1.0, scale: 1.5, samples: 12, distanceFallOff: 1.0 });
       ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
       if (this.appleGPU) { const set = ao.setSize.bind(ao); ao.setSize = (sw, sh) => set(Math.ceil(sw / 2), Math.ceil(sh / 2)); }
+      if (this._byteRT) {
+        // swap the half-float colour for 8-bit, keeping the shared depth texture and the shader's texture pointers
+        ao.normalRenderTarget = this._toByte(ao.normalRenderTarget, { depthTexture: ao.depthTexture });
+        ao.normalTexture = ao.normalRenderTarget.texture;
+        ao.gtaoMaterial.uniforms.tNormal.value = ao.normalTexture;
+        ao.pdMaterial.uniforms.tNormal.value = ao.normalTexture;
+        ao.gtaoRenderTarget = this._toByte(ao.gtaoRenderTarget);
+        ao.pdRenderTarget = this._toByte(ao.pdRenderTarget);
+        ao.pdMaterial.uniforms.tDiffuse.value = ao.gtaoRenderTarget.texture;
+      }
       comp.addPass(ao);
     }
     this.bloom = new UnrealBloomPass(new THREE.Vector2(w, h), ...BLOOM);
     this.bloom.enabled = !!(q.bloom && this.settings.bloom);
+    if (this._byteRT) {
+      // the HDR threshold (2.4) can never fire on an 8-bit buffer — bloom the near-white areas instead
+      this.bloom.threshold = Math.min(this.bloom.threshold, 0.82);
+      this.bloom.renderTargetBright = this._toByte(this.bloom.renderTargetBright);
+      this.bloom.renderTargetsHorizontal = this.bloom.renderTargetsHorizontal.map((t) => this._toByte(t));
+      this.bloom.renderTargetsVertical = this.bloom.renderTargetsVertical.map((t) => this._toByte(t));
+      for (let i = 0; i < this.bloom.renderTargetsVertical.length; i++) {
+        this.bloom.compositeMaterial.uniforms['blurTexture' + (i + 1)].value = this.bloom.renderTargetsVertical[i].texture;
+      }
+    }
     comp.addPass(this.bloom);
     this.grade = new ShaderPass(GradeShader);
     this._gradeSrc = null;   // (re)apply the theme grade + bloom to the new passes
     comp.addPass(this.grade);
     // optional screen-FX pass (src/fx/screenfx.js) — runs in HDR linear space before tone mapping/output
-    if (this.extraPass) comp.addPass(this.extraPass);
+    if (this.extraPass && !NO_SFX) comp.addPass(this.extraPass);
     comp.addPass(new OutputPass());
     // SMAA stands in for MSAA where MSAA was skipped; it runs on the tone-mapped sRGB image
     if (q.msaa && !this.samples) comp.addPass(new SMAAPass());
     r.shadowMap.enabled = this.settings.shadows !== false;
     this._w = w; this._h = h;
     this.grade.uniforms.uAspect.value = w / h;
+    diagPipeline(this.pipelineInfo());   // the diag log records every pipeline (re)build
   }
 
   // Install (or replace) the screen-FX post pass; kept across quality/setting rebuilds.
   setExtraPass(pass) {
     this.extraPass = pass;
     if (this.scene) this._buildComposer();
+  }
+
+  // 8-bit rebuild of a post-pass internal target (see d3d11 in the constructor): same size/filters/colour space,
+  // only the format changes; the old GL resources are freed
+  _toByte(rt, opts = {}) {
+    const n = new THREE.WebGLRenderTarget(rt.width, rt.height, { type: THREE.UnsignedByteType, depthBuffer: rt.depthBuffer, stencilBuffer: false, colorSpace: rt.texture.colorSpace, ...opts });
+    n.texture.generateMipmaps = rt.texture.generateMipmaps;
+    n.texture.minFilter = rt.texture.minFilter;
+    n.texture.magFilter = rt.texture.magFilter;
+    rt.dispose();
+    return n;
   }
 
   applySettings(settings) {
@@ -199,8 +249,19 @@ export class Renderer {
     if (this.camera) { this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
   }
 
+  // active pipeline snapshot (shipped with the diag log so each real-GPU session is self-describing)
+  pipelineInfo() {
+    return {
+      samples: this.samples, rt: this._byteRT ? 'byte' : 'half', d3d11: this.d3d11,
+      ao: !!this.gtao, bloom: !!this.bloom?.enabled, sfx: !!this.extraPass && !NO_SFX, post: !NO_POST,
+      dpr: +this.renderer.getPixelRatio().toFixed(3), w: this._w, h: this._h,
+    };
+  }
+
   render() {
     this.resize();
+    // ?post=0 diagnostic: bypass the whole composer — the control arm of the "is it the post stack?" A/B
+    if (NO_POST) { this.renderer.render(this.scene, this.camera); return; }
     // colour grade recommended by the environment theme (day / dusk)
     const gr = G.env && G.env.grade;
     if (gr && gr !== this._gradeSrc && this.grade) {
@@ -211,7 +272,7 @@ export class Renderer {
       u.uHighTint.value.set(...(gr.uHighTint || [1.025, 1.0, 0.972]));
       // bloom per theme: [strength, radius, threshold] — dusk lets lamps / lit windows bloom, daylight keeps it to the sun
       const bl = gr.bloom || BLOOM;
-      this.bloom.strength = bl[0]; this.bloom.radius = bl[1]; this.bloom.threshold = bl[2];
+      this.bloom.strength = bl[0]; this.bloom.radius = bl[1]; this.bloom.threshold = this._byteRT ? Math.min(bl[2], 0.82) : bl[2];
     }
     this.composer.render();
   }

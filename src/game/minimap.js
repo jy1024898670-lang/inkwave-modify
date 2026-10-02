@@ -473,6 +473,24 @@ export class Minimap {
       c.fillStyle = col; c.fill();
       if (st === 'spray') { c.lineWidth = 1.5; c.strokeStyle = col; c.globalAlpha = 0.5; c.beginPath(); c.arc(tc.x, tc.y, it.sub.sprayRadius * s * 0.8, 0, TAU); c.stroke(); c.globalAlpha = 1; }
     }
+    // your position: shown while the strike aiming map is open — the strike cursor needs a self-reference to read
+    // where the target is relative to you (chevron points along your facing; the map's mirror/flip is handled by toCanvas)
+    const me2 = G.local;
+    if (me2 && me2.alive && me2.specialActive && me2.specialActive.id === 'strike' && me2.specialActive.aiming) {
+      this.toCanvas(me2.pos.x, me2.pos.z, tc);
+      const fa = { x: 0, y: 0 };
+      this.toCanvas(me2.pos.x + Math.sin(me2.aimYaw) * 3, me2.pos.z + Math.cos(me2.aimYaw) * 3, fa);
+      const ang = Math.atan2(fa.y - tc.y, fa.x - tc.x);
+      const r = s * 1.5, pulse = 0.5 + 0.5 * Math.sin(t * 6);
+      c.globalAlpha = 0.22 + 0.18 * pulse; c.fillStyle = '#ffffff';
+      c.beginPath(); c.arc(tc.x, tc.y, r * (1.6 + 0.35 * pulse), 0, TAU); c.fill(); c.globalAlpha = 1;
+      c.save(); c.translate(tc.x, tc.y); c.rotate(ang);
+      c.beginPath(); c.moveTo(r * 1.5, 0); c.lineTo(-r * 0.9, r * 0.85); c.lineTo(-r * 0.35, 0); c.lineTo(-r * 0.9, -r * 0.85); c.closePath();
+      c.lineWidth = 3; c.strokeStyle = '#15121c'; c.stroke();
+      c.fillStyle = '#ffffff'; c.fill();
+      c.lineWidth = 1.6; c.strokeStyle = hex[me2.team] || '#ffffff'; c.stroke();
+      c.restore();
+    }
     // specials: vortex targets + funnels, sound beams, bubbles, cheer orbs, the local strike cursor
     G.specials?.drawMap(c, this, tc, s, hex, t);
     c.globalAlpha = 1;

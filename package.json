@@ -2,12 +2,12 @@
   "name": "inkwave",
   "productName": "INKWAVE",
   "version": "1.1.0",
-  "description": "An original Splatoon-style 4v4 turf-war shooter for the browser, built on three.js.",
+  "description": "An original Splatoon-style 5v5 turf-war shooter for the browser, built on three.js.",
   "main": "electron/main.cjs",
   "scripts": {
     "start": "electron .",
     "serve": "python3 tools/serve.py 8490",
-    "check": "for f in $(find src electron build tools server/src -name '*.js' -o -name '*.mjs' -o -name '*.cjs'); do node --check \"$f\" || exit 1; done && echo 'syntax ok'",
+    "check": "node tools/check-syntax.mjs",
     "package": "electron-packager . INKWAVE --platform=darwin --arch=arm64,x64 --icon=build/icon.icns --app-bundle-id=local.inkwave.game --app-category-type=public.app-category.action-games --extend-info=build/extend-info.plist --darwin-dark-mode-support --asar.unpackDir=songs --out=dist --overwrite --ignore='^/(dist|build|node_modules|docs|tools|server|\\.botlab)(/|$)' --ignore='\\.DS_Store$'",
     "music": "node build/music-manifest.mjs",
     "prestart": "npm run -s music",
@@ -35,7 +35,7 @@
   "author": "Jayden Davis",
   "license": "MIT",
   "type": "module",
-  "homepage": "https://inkwave-aah.pages.dev",
+  "homepage": "https://inkwave-2cc.pages.dev",
   "repository": {
     "type": "git",
     "url": "https://github.com/jaydendavisnc/inkwave.git"

@@ -53,6 +53,7 @@ const SLOTS = [
   { x: 0, z: 0, R: 0.7, top: 0.72, yaw: 0 },
   { x: -1.34, z: -0.14, R: 0.63, top: 0.46, yaw: 0.2 },
   { x: 1.34, z: -0.14, R: 0.63, top: 0.46, yaw: -0.2 },
+  { x: -2.55, z: -0.36, R: 0.56, top: 0.22, yaw: 0.34 },
   { x: 2.55, z: -0.36, R: 0.56, top: 0.22, yaw: -0.34 },
 ];
 const CHAR_H = 1.62; // squidkid height incl. hair

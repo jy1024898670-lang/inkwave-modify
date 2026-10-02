@@ -84,7 +84,7 @@ export class Match {
     // initial placement on the spawn decks (standing, no drop)
     for (const a of this.actors) {
       const pad = G.level.spawnPads[a.team];
-      const ang = (a.slot / (this.mode === 'boss' ? BOSS_MODE.squad : 4)) * Math.PI * 2 + 0.6, rr = this.mode === 'boss' ? 1.7 : 1.2;
+      const ang = (a.slot / (this.mode === 'boss' ? BOSS_MODE.squad : MATCH.teamSize)) * Math.PI * 2 + 0.6, rr = this.mode === 'boss' ? 1.7 : 1.2;
       _v.set(pad.x + Math.cos(ang) * rr, pad.y, pad.z + Math.sin(ang) * rr);
       a.spawnAt(_v, a.team === 0 ? 0 : Math.PI);
       a.invuln = 0;
@@ -118,7 +118,7 @@ export class Match {
     if (this.local && !o.autopilot) this.controller = new PlayerController(this.local, o.rig, o.input);
     for (const a of this.actors) {
       const pad = G.level.spawnPads[a.team];
-      const ang = (a.slot / (this.mode === 'boss' ? BOSS_MODE.squad : 4)) * Math.PI * 2 + 0.6, rr = this.mode === 'boss' ? 1.7 : 1.2;
+      const ang = (a.slot / (this.mode === 'boss' ? BOSS_MODE.squad : MATCH.teamSize)) * Math.PI * 2 + 0.6, rr = this.mode === 'boss' ? 1.7 : 1.2;
       _v.set(pad.x + Math.cos(ang) * rr, pad.y, pad.z + Math.sin(ang) * rr);
       a.spawnAt(_v, a.team === 0 ? 0 : Math.PI);
       a.invuln = 0;

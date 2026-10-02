@@ -1,6 +1,6 @@
 # Online play — session contract (`G.net`)
 
-Private rooms with a 5-character code, up to 8 players (4 v 4, empty slots optionally filled with bots). The room
+Private rooms with a 5-character code, up to 10 players (5 v 5, empty slots optionally filled with bots). The room
 creator is the **host**: their browser runs the bots, the match clock and the final judge. Every player simulates their
 own squidkid locally (instant controls) and streams it to the others, who render it through the same animation system
 as a local character, interpolated ~100 ms behind. Ink is replicated splat-for-splat from whoever painted it, so every
@@ -134,3 +134,39 @@ point would sit under a UI panel), `lobbySlotAnchor(row, i, out)` (unclaimed mar
 `leaveLobby()` (the others duck away; your kid stays and heads back to the hub spot on `showHub`). Coming back to the
 room (locker, a match) finds everyone already standing on their marks: arrivals never replay. `opts.quick` is still
 accepted and no longer needed. Audits: `showcase.debugCam = { pos, target, fov }` overrides the set camera.
+
+## Deploying the relay (Cloudflare Workers + Durable Objects)
+
+The online backend is a single Worker (`server/src/index.js`) with two Durable Object classes:
+
+- **`Room`** — one instance per room code: per-player WebSocket upgrade, join / leave bookkeeping, host election
+  (lowest join seq), the in-match lock, and the liveness sweep (a socket whose pings stop for 20 s in a match /
+  150 s in the lobby is dropped and its squidkid handed to a bot).
+- **`Lobby`** — a single instance (`lobby`): a SQLite registry of public rooms. The Room's host marks a room public
+  with a `{t:'meta', public, mode, map}` frame (relayed to the other players); the Room then upserts its card —
+  code, host name, mode, map, player count, in-match flag — into the registry on every join / leave / lock / meta
+  change and on each liveness sweep while public, and removes it when the room goes private or empty. New joiners
+  get the current meta right after their welcome, so their PUBLIC ROOM toggle shows the right state. The game's
+  ONLINE screen polls `GET /lobby` (auto-refresh every 5 s); a row click fills the code and joins. Cards carry a
+  timestamp; the alarm prunes stale ones (90 s — a live room re-syncs every few seconds, so the TTL is a sweep net).
+
+Local:
+
+    npm run relay                      # wrangler dev on :8787; the client on :8490 picks it up automatically
+    node tools/lobby-server-check.mjs  # server contract, no browser: origin check, meta, registry, lock, remove
+    node tools/lobby-check.mjs         # full browser E2E: create → public → list → click join → both in the room
+
+Deploy (needs wrangler auth on this machine, e.g. `npx wrangler login`):
+
+    npm run deploy-relay               # cd server && wrangler deploy
+
+- The `Lobby` sqlite class ships in migration `v2` (`server/wrangler.jsonc`); wrangler applies it during the deploy.
+  The lobby endpoints do not exist on the Worker until that deploy lands — the client degrades gracefully (the
+  PUBLIC ROOMS panel shows "No public rooms yet").
+- The frontend (PUBLIC ROOMS panel on the ONLINE screen, PUBLIC ROOM toggle in the room) is released as usual:
+  `npm run release` → `inkwave-2cc.pages.dev`.
+- Origin policy: the Worker admits WebSocket upgrades and `/lobby` only from the Pages origin (incl. preview
+  subdomains) and local / LAN dev hosts (`localhost`, `127.0.0.1`, RFC 1918, `*.local`); everything else is a 403.
+- The client finds the relay on its own: local origins → `ws://<host>:8787`, anything else →
+  `wss://inkwave-net.inkwave.workers.dev` (`PROD_RELAY` in `src/net/transport.js` — update it if the Worker is ever
+  redeployed under a different subdomain). `?relay=<ws-url>` still overrides for one page.

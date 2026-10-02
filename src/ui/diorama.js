@@ -1,8 +1,8 @@
 // Map diorama overlay. While the map is held, the camera rig swoops the RENDERED view up into a tilted overhead shot of
 // the real stage (the live scene with its live ink — nothing is rebuilt; see CameraRig.mapK / _diorama). This layer
 // pins the people and places onto that view, Splatoon-style:
-//   · you (arrow = facing), your three teammates (weapon badge, name, [1]–[3]; greyed with a countdown while splatted),
-//     your base ([4]) and your team's Hop Beacons ([5]–[9], [0], oldest first) — enemies are not shown
+//   · you (arrow = facing), your four teammates (weapon badge, name, [1]–[4]; greyed with a countdown while splatted),
+//     your base ([5]) and your team's Hop Beacons ([6]–[9], [0]–[3], oldest first) — enemies are not shown
 //   · a virtual map cursor (pointer stays locked: mouse deltas / right stick) that snaps to pins and tilts the diorama a
 //     touch toward itself; click / A on a pin, or the number keys, to Super Jump — an ink arc previews the jump, and
 //     once you (or a teammate) jump it stays up as the travel line: drawn out while charging, travelled in flight with
@@ -14,6 +14,7 @@
 // Per frame it only projects a handful of points and writes transforms / CSS vars when they change.
 import { h, clamp } from './ui-util.js';
 import { keycap, weaponIcon, richText, SUB_ICONS } from './ui-icons.js';
+import { MATCH } from '../config.js';
 import { DEATH_MARK_SVG } from './hud.js';
 import { G } from '../core/ctx.js';
 import { superJumpInfo } from '../game/minimap.js';
@@ -46,14 +47,14 @@ function qLen(x0, y0, cx, cy, x1, y1, u0, u1) {
   return L;
 }
 const _jf = { x: 0, y: 0, z: 0 }, _jt = { x: 0, y: 0, z: 0 }, _ji = { phase: '', k: 0, e: 0, home: false }, _ctl = { x: 0, y: 0 };
-const NJ = 4;             // live super-jump lines: you + three teammates
+const NJ = MATCH.teamSize;   // live super-jump lines: you + your teammates
 const K = '#15121c';
 const HOME_ICON = `<svg viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="46" rx="22" ry="8.5" fill="none" stroke="${K}" stroke-width="8"/><ellipse cx="32" cy="46" rx="22" ry="8.5" fill="none" stroke="#fff" stroke-width="4"/><path d="M32 8 L32 34 M21 24 L32 36 L43 24" fill="none" stroke="${K}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 8 L32 34 M21 24 L32 36 L43 24" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const ARROW = `<svg viewBox="-16 -16 32 32" aria-hidden="true"><path d="M0 -12 L10 10 L0 5 L-10 10 Z" fill="${K}" stroke="${K}" stroke-width="5" stroke-linejoin="round"/><path d="M0 -12 L10 10 L0 5 L-10 10 Z" fill="#fff"/></svg>`;
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 // Zone Control tag icon (the HUD's zone box): fill = currentColor
 const ZONE_ICON = `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="7" width="18" height="18" rx="3.5" fill="currentColor" stroke="${K}" stroke-width="3"/><path d="M3.5 11 V6 a2.5 2.5 0 0 1 2.5 -2.5 H11 M21 3.5 H26 a2.5 2.5 0 0 1 2.5 2.5 V11 M28.5 21 V26 a2.5 2.5 0 0 1 -2.5 2.5 H21 M11 28.5 H6 a2.5 2.5 0 0 1 -2.5 -2.5 V21" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>`;
-const NPIN = 11;          // 0–2 allies, 3 base, 4 you, 5–10 team Hop Beacons
+const NPIN = 5 + MATCH.teamSize - 1 + 6;   // 0–(teamSize-2) allies, then you, then base, then team Hop Beacons
 const beaconsOf = (team) => (G.subs ? G.subs.beaconsFor(team).sort((x, y) => x.born - y.born) : []);
 
 export class DioramaOverlay {
@@ -99,14 +100,14 @@ export class DioramaOverlay {
   }
 
   _pin(i) {
-    const self = i === 4, home = i === 3, beacon = i >= 5;
+    const self = i === MATCH.teamSize - 1, home = i === MATCH.teamSize, beacon = i > MATCH.teamSize;
     const icon = h('span', { class: 'iw-pin__icon', html: self ? ARROW : home ? HOME_ICON : beacon ? (SUB_ICONS.beacon || '') : '' });
     const name = h('span', { class: 'iw-pin__name' }, self ? 'YOU' : home ? 'BASE' : beacon ? 'BEACON' : '');
     const state = h('span', { class: 'iw-pin__state' });
     const el = h('div', { class: 'iw-pin' + (self ? ' iw-pin--self' : '') + (home ? ' iw-pin--home' : '') + (beacon ? ' iw-pin--beacon' : '') },
       h('span', { class: 'iw-pin__ground' }), h('span', { class: 'iw-pin__stem' }),
       h('span', { class: 'iw-pin__badge' }, icon, h('span', { class: 'iw-pin__pulse' })),
-      self ? null : h('span', { class: 'iw-pin__key', html: keycap(String(beacon ? i % 10 : i + 1)) }),
+      self ? null : h('span', { class: 'iw-pin__key', html: keycap(String(beacon ? (i + 1) % 10 : i + 1)) }),
       name, state,
       self || home ? null : h('span', { class: 'iw-pin__queue' }, 'ON RESPAWN'));
     return { el, icon, name, state, x: 0, y: 0, vis: false, key: '', weapon: null, target: null, ok: false, queued: false };
@@ -143,12 +144,12 @@ export class DioramaOverlay {
     for (let i = 0; i < NPIN; i++) {
       const p = this.pins[i];
       let tgt = null, ok = false, label = '', st = '', dead = false, weapon = null;
-      if (i >= 5) {
-        const b = beacons[i - 5];
+      if (i > MATCH.teamSize) {
+        const b = beacons[i - 1 - MATCH.teamSize];
         if (b) { tgt = b.pos; ok = true; label = 'BEACON'; st = b.uses > 1 ? '×' + b.uses : ''; }
         p.target = b || null;
         p.queued = !!(q && b && q.kind === 'beacon' && q.target === b);
-      } else if (i < 3) {
+      } else if (i < MATCH.teamSize - 1) {
         const o = allies[i];
         if (o) {
           // (planning: a teammate mid Super Jump can be picked — you'd land where they come down)
@@ -156,22 +157,22 @@ export class DioramaOverlay {
           dead = !o.alive; if (dead) st = String(Math.max(1, Math.ceil(o.respawnTimer || 0)));
           else if (o.superJumpState) st = '↑';
         }
-      } else if (i === 3) { tgt = G.level?.spawnPads?.[me.team] || null; ok = !!tgt; }
+      } else if (i === MATCH.teamSize) { tgt = G.level?.spawnPads?.[me.team] || null; ok = !!tgt; }
       else { tgt = me.visualPos ? me.visualPos(_v2) : me.pos; ok = true; dead = !me.alive; }
-      if (i < 5) { p.target = i < 3 ? allies[i] || null : null; p.queued = !!(q && i < 3 && q.kind === 'ally' && q.target === allies[i]); }
-      p.ok = ok && (canJump || planning) && i !== 4;
+      if (i <= MATCH.teamSize) { p.target = i < MATCH.teamSize - 1 ? allies[i] || null : null; p.queued = !!(q && i < MATCH.teamSize - 1 && q.kind === 'ally' && q.target === allies[i]); }
+      p.ok = ok && (canJump || planning) && i !== MATCH.teamSize - 1;
       if (!tgt) { if (p.vis) { p.vis = false; p.el.style.display = 'none'; } continue; }
       _v.set(tgt.x, tgt.y + 0.1, tgt.z).project(cam);
       const behind = _v.z > 1;
       let x = (_v.x * 0.5 + 0.5) * W, y = (0.5 - _v.y * 0.5) * H;
       // a Super Jump in the air: the pin rides its travel line
-      const ride = i === 4 ? this.jpos.get(me) : i < 3 && allies[i] ? this.jpos.get(allies[i]) : null;
+      const ride = i === MATCH.teamSize - 1 ? this.jpos.get(me) : i < MATCH.teamSize - 1 && allies[i] ? this.jpos.get(allies[i]) : null;
       if (ride) { x = ride.x; y = ride.y; }
       p.x = x; p.y = y;
       if (behind) { if (p.vis) { p.vis = false; p.el.style.display = 'none'; } continue; }
       if (!p.vis) { p.vis = true; p.el.style.display = ''; }
       p.el.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`;
-      if (i === 4) {
+      if (i === MATCH.teamSize - 1) {
         // facing arrow: screen-space direction of the player's forward
         const f = me.yaw || 0;
         _v2.set(tgt.x + Math.sin(f) * 3, tgt.y + 0.1, tgt.z + Math.cos(f) * 3).project(cam);
@@ -181,7 +182,7 @@ export class DioramaOverlay {
       const key = `${label}|${st}|${dead ? 1 : 0}|${p.ok ? 1 : 0}|${this.hover === i ? 1 : 0}|${weapon}|${p.queued ? 1 : 0}`;
       if (key !== p.key) {
         p.key = key;
-        if (i < 3) {
+        if (i < MATCH.teamSize - 1) {
           p.name.textContent = label;
           if (weapon !== p.weapon) { p.weapon = weapon; p.icon.innerHTML = weaponIcon(weapon); }
         }
@@ -211,7 +212,7 @@ export class DioramaOverlay {
     // snap: nearest jumpable pin within reach
     let best = -1, bd = 72;
     for (let i = 0; i < NPIN; i++) {
-      if (i === 4) continue;
+      if (i === MATCH.teamSize - 1) continue;
       const p = this.pins[i];
       if (!p.vis) continue;
       const d = Math.hypot(p.x - this.cx * W, p.y - 34 - this.cy * H);
@@ -231,16 +232,16 @@ export class DioramaOverlay {
     if (inp && this.k > 0.7) {
       const click = (inp.locked && inp.mouse.leftPressed) || inp.padPressed?.has?.(0);
       if (click && this.hover >= 0) this._jump(this.hover, me);
-      for (let i = 0; i < 4; i++) if (inp.wasPressed?.('Digit' + (i + 1))) this._flash(i);
-      for (let i = 5; i < NPIN; i++) if (this.pins[i].vis && inp.wasPressed?.('Digit' + (i % 10))) this._flash(i);
+      for (let i = 0; i < MATCH.teamSize; i++) if (inp.wasPressed?.('Digit' + (i + 1))) this._flash(i);
+      for (let i = MATCH.teamSize + 1; i < NPIN; i++) if (this.pins[i].vis && inp.wasPressed?.('Digit' + ((i + 1) % 10))) this._flash(i);
     }
     // ---- jump arc preview (splatted: from your base — where you'll respawn — to the hovered pin, else the planned one)
-    let sp = this.pins[4], hp = this.hover >= 0 ? this.pins[this.hover] : null, showArc;
+    let sp = this.pins[MATCH.teamSize - 1], hp = this.hover >= 0 ? this.pins[this.hover] : null, showArc;
     if (planning) {
-      sp = this.pins[3];
-      if (!(hp && hp.ok && this.hover !== 3)) hp = this.pins.find((pp) => pp.queued) || null;
+      sp = this.pins[MATCH.teamSize];
+      if (!(hp && hp.ok && this.hover !== MATCH.teamSize)) hp = this.pins.find((pp) => pp.queued) || null;
       showArc = !!(hp && hp.vis && sp.vis && hp !== sp);
-    } else showArc = !!(hp && hp.vis && sp.vis && canJump && (this.hover === 3 || hp.ok));
+    } else showArc = !!(hp && hp.vis && sp.vis && canJump && (this.hover === MATCH.teamSize || hp.ok));
     if (showArc !== this._last.arc) { this._last.arc = showArc; this.arc.classList.toggle('is-on', showArc); }
     if (showArc) {
       // a lob bowed out to the side facing up-screen (lobCtl) — the live travel line keeps this shape once you jump
@@ -344,13 +345,13 @@ export class DioramaOverlay {
     // splatted: plan (queue) the jump for the respawn — never a jump now (player.js queueJump plays the cue)
     const ctl = G.match?.controller;
     if (me && !me.alive && ctl?.queueJump && G.match.state === 'playing') {
-      if (i !== 4) { ctl.queueJump(i === 3 ? 'base' : i >= 5 ? 'beacon' : 'ally', i === 3 ? null : p.target); this._flash(i); }
+      if (i !== MATCH.teamSize - 1) { ctl.queueJump(i === MATCH.teamSize ? 'base' : i > MATCH.teamSize ? 'beacon' : 'ally', i === MATCH.teamSize ? null : p.target); this._flash(i); }
       return;
     }
     if (!me || !me.canSuperJump || !me.canSuperJump()) { G.audio?.play?.('ui_error', { volume: 0.5 }); return; }
     let ok = false;
-    if (i === 3) { const pad = G.level?.spawnPads?.[me.team]; ok = pad ? me.superJump(pad.clone()) : false; }
-    else if (i >= 5) ok = !!(p.target && G.subs && G.subs.jumpToBeacon(me, p.target));
+    if (i === MATCH.teamSize) { const pad = G.level?.spawnPads?.[me.team]; ok = pad ? me.superJump(pad.clone()) : false; }
+    else if (i > MATCH.teamSize) ok = !!(p.target && G.subs && G.subs.jumpToBeacon(me, p.target));
     else if (p.target && p.target.alive && !p.target.superJumpState) ok = me.superJump(p.target);
     this._flash(i);
     G.audio?.play?.(ok ? 'ui_confirm' : 'ui_error', { volume: 0.55 });
@@ -369,8 +370,8 @@ export class DioramaOverlay {
     const plan = !!this._planning;
     this.foot.innerHTML = pad
       ? richText(plan ? 'Right stick to point · A or D-pad to plan your Super Jump · release VIEW to close' : 'Right stick to point · A or D-pad to Super Jump · release VIEW to close')
-      : `${keycap('1')}${keycap('2')}${keycap('3')} <span>${plan ? 'Plan a jump to a teammate' : 'Super Jump to a teammate'}</span> ${keycap('4')} <span>${plan ? 'Base (no jump)' : 'Base'}</span>` +
-        (G.match?.local && beaconsOf(G.match.local.team).length ? ` ${keycap('5')}–${keycap('0')} <span>Beacons</span>` : '') +
+      : `${keycap('1')}–${keycap(String(MATCH.teamSize - 1))} <span>${plan ? 'Plan a jump to a teammate' : 'Super Jump to a teammate'}</span> ${keycap(String(MATCH.teamSize))} <span>${plan ? 'Base (no jump)' : 'Base'}</span>` +
+        (G.match?.local && beaconsOf(G.match.local.team).length ? ` ${keycap(String((MATCH.teamSize + 1) % 10))}–${keycap('0')} <span>Beacons</span>` : '') +
         ` <em>·</em> <span>Point + click a pin</span> <em>·</em> <span>release</span> ${keycap('TAB')}`;
   }
 

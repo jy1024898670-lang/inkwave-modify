@@ -48,8 +48,9 @@ const MITT_KICK_T = { duration: 150, easing: 'cubic-bezier(.2,.8,.3,1)' };
 const TAU = Math.PI * 2;
 const STREAKS = { 2: 'DOUBLE SPLAT!', 3: 'TRIPLE SPLAT!', 4: 'QUAD SPLAT!' };
 const kindOf = (w) => (WEAPONS[w] && WEAPONS[w].kind) || w || 'shooter';
-// super-jump map slots: 3 teammates, base, then up to 6 team jump beacons (keys 1–9, 0)
+// super-jump map slots: 4 teammates, base, then up to 5 team jump beacons (keys 1–9, 0)
 const NB = 10;
+const HB = MATCH.teamSize - 1;   // the home slot (base): after the teammates
 const slotKey = (i) => String((i + 1) % 10);
 // reticle family for weapons that share another kind's crosshair: our twins / spinner / bucket wear upstream's dualies /
 // splatling / slosher reticles (the retired weapons they replaced), the brush the roller's brackets
@@ -153,7 +154,7 @@ export class HUD {
     this.ctx = this.canvas.getContext('2d');
 
     // ---- top bar: roster + timer
-    const squad = (side) => h('div', { class: `iw-squad iw-squad--${side}` }, Array.from({ length: 4 }, () => {
+    const squad = (side) => h('div', { class: `iw-squad iw-squad--${side}` }, Array.from({ length: MATCH.teamSize }, () => {
       const ring = h('i', { class: 'iw-sq__ring', html: '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" pathLength="100"/></svg>' });
       return h('span', { class: 'iw-sq' },
         h('span', { class: 'iw-sq__badge', html: `<svg class="iw-sq__shape" viewBox="0 0 64 64" aria-hidden="true"><path class="o" d="${BADGE_PATH}"/><path class="f" d="${BADGE_PATH}"/><path class="g" d="M17 30 Q20 22 28 19"/></svg>` },
@@ -249,18 +250,18 @@ export class HUD {
     // ---- minimap + super-jump beacons
     this.mapSlot = h('div', { class: 'iw-map__slot' });
     const arrow = '<svg class="iw-mdot__arrow" viewBox="-13 -15 26 30" aria-hidden="true"><path class="o" d="M0 -11 L9 11 L0 5.5 L-9 11 Z"/><path class="i" d="M0 -11 L9 11 L0 5.5 L-9 11 Z"/></svg>';
-    this.mapDots = Array.from({ length: 8 }, () => h('i', { class: 'iw-mdot', html: '<b></b>' + arrow }));
+    this.mapDots = Array.from({ length: MATCH.teamSize * 2 }, () => h('i', { class: 'iw-mdot', html: '<b></b>' + arrow }));
     // death markers on the minimap (under the player dots)
     this.mapDms = Array.from({ length: 12 }, () => h('i', { class: 'iw-mdm', html: DEATH_MARK_SVG }));
     this.mapFrame = h('div', { class: 'iw-map__frame' }, this.mapSlot, h('div', { class: 'iw-map__dms' }, this.mapDms), h('div', { class: 'iw-map__dots' }, this.mapDots), h('i', { class: 'iw-map__gloss' }));
     this.mapLabel = h('div', { class: 'iw-map__label' }, h('span', { html: keycap('TAB') }), h('span', null, 'MAP'));
     this.beacons = Array.from({ length: NB }, (_, i) => {
-      const b = h('div', { class: 'iw-bcn' + (i === 3 ? ' iw-bcn--home' : i > 3 ? ' iw-bcn--dev' : '') },
+      const b = h('div', { class: 'iw-bcn' + (i === HB ? ' iw-bcn--home' : i > HB ? ' iw-bcn--dev' : '') },
         h('span', { class: 'iw-bcn__stem' }, h('i')),
         h('span', { class: 'iw-bcn__pulse' }),
-        h('span', { class: 'iw-bcn__disc' }, h('span', { class: 'iw-bcn__icon', html: i === 3 ? SPAWN_ICON : i > 3 ? SUB_ICONS.beacon || '' : '' })),
+        h('span', { class: 'iw-bcn__disc' }, h('span', { class: 'iw-bcn__icon', html: i === HB ? SPAWN_ICON : i > HB ? SUB_ICONS.beacon || '' : '' })),
         h('span', { class: 'iw-bcn__key' }, slotKey(i)),
-        h('span', { class: 'iw-bcn__label' }, h('small', null, 'SUPER JUMP'), h('b', null, i === 3 ? 'Base' : '')));
+        h('span', { class: 'iw-bcn__label' }, h('small', null, 'SUPER JUMP'), h('b', null, i === HB ? 'Base' : '')));
       b.addEventListener('pointerenter', () => { if (this._map.open) this._map.hover = i; });
       b.addEventListener('pointerleave', () => { if (this._map.hover === i) this._map.hover = -1; });
       b.addEventListener('click', (e) => { e.stopPropagation(); this._jumpTo(i); });
@@ -269,10 +270,10 @@ export class HUD {
     this.mapCursor = h('div', { class: 'iw-mcur' }, h('i'));
     this.mapJumpLine = h('div', { class: 'iw-map__jline', html: '<svg aria-hidden="true"><path/></svg>' });
     this.legendRows = Array.from({ length: NB }, (_, i) => {
-      const row = h('div', { class: 'iw-lg__row' + (i === 3 ? ' is-home' : '') },
+      const row = h('div', { class: 'iw-lg__row' + (i === HB ? ' is-home' : '') },
         h('span', { class: 'iw-lg__key', html: keycap(slotKey(i)) }),
-        h('span', { class: 'iw-lg__w', html: i === 3 ? SPAWN_ICON : i > 3 ? SUB_ICONS.beacon || '' : '' }),
-        h('span', { class: 'iw-lg__name' }, i === 3 ? 'Base' : '—'),
+        h('span', { class: 'iw-lg__w', html: i === HB ? SPAWN_ICON : i > HB ? SUB_ICONS.beacon || '' : '' }),
+        h('span', { class: 'iw-lg__name' }, i === HB ? 'Base' : '—'),
         h('span', { class: 'iw-lg__st' }));
       row.addEventListener('pointerenter', () => { if (this._map.open) this._map.hover = i; });
       row.addEventListener('pointerleave', () => { if (this._map.hover === i) this._map.hover = -1; });
@@ -283,12 +284,12 @@ export class HUD {
       h('div', { class: 'iw-lg__title iw-display' }, 'SUPER JUMP'),
       h('div', { class: 'iw-lg__sub' }, 'Pick a landing spot'),
       h('div', { class: 'iw-lg__rows' }, this.legendRows),
-      h('div', { class: 'iw-lg__foot', html: richText('Press [1] – [4] or click · release [TAB] to cancel') }));
+      h('div', { class: 'iw-lg__foot', html: richText('Press [1] – [5] or click · release [TAB] to cancel') }));
     this.map = h('div', { class: 'iw-map' }, this.mapFrame, this.mapJumpLine, h('div', { class: 'iw-map__bcns' }, this.beacons), this.mapCursor, this.mapLabel, this.mapLegend);
     this.mapDim = h('div', { class: 'iw-map-dim' });
     this._mapT = 0; this._mapV = 0;
 
-    this.markers = Array.from({ length: 8 }, () => h('div', { class: 'iw-mk' }, h('span', { class: 'iw-mk__tag' }, h('i', { class: 'iw-mk__w' }), h('b')), h('i', { class: 'iw-mk__arrow' })));
+    this.markers = Array.from({ length: MATCH.teamSize - 1 }, () => h('div', { class: 'iw-mk' }, h('span', { class: 'iw-mk__tag' }, h('i', { class: 'iw-mk__w' }), h('b')), h('i', { class: 'iw-mk__arrow' })));
     this.markerLayer = h('div', { class: 'iw-mks' }, this.markers);
     // "Yeah!" cheers: speech bubbles over whoever signalled
     this.cheerEls = Array.from({ length: 8 }, () => h('div', { class: 'iw-cheer' }, 'YEAH!'));
@@ -708,7 +709,7 @@ export class HUD {
       // callouts, most important first
       let call = null, sub = null;
       const enemies = this._actors().filter((a) => a.team !== me.team);
-      if (enemies.length >= 4 && enemies.every((a) => !a.alive)) { call = 'WIPEOUT!'; sub = 'The whole team is splatted'; }
+      if (enemies.length >= MATCH.teamSize && enemies.every((a) => !a.alive)) { call = 'WIPEOUT!'; sub = 'The whole team is splatted'; }
       else if (multi >= 2) call = STREAKS[Math.min(4, multi)];
       else if (!K.first) { call = 'FIRST SPLAT!'; }
       else if (K.lastKiller && victim === K.lastKiller) { call = 'REVENGE!'; K.lastKiller = null; }
@@ -1213,7 +1214,7 @@ export class HUD {
     for (let t = 0; t < 2; t++) {
       const ps = (teams[t] && teams[t].players) || [];
       const icons = this.squads[t].children;
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < MATCH.teamSize; i++) {
         const p = ps[i];
         const el = icons[i];
         const k = `sq${t}${i}`;
@@ -1777,16 +1778,16 @@ export class HUD {
     const allies = (G.actors || []).filter((o) => o.team === me.team && o !== me);
     const mm = G.game && G.game.minimap;
     const tc = { x: 0, y: 0 };
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < MATCH.teamSize - 1; i++) {
       const o = allies[i];
       if (!o || !mm) continue;
       mm.toCanvas(o.pos.x, o.pos.z, tc);
       out[i] = { x: tc.x / mm.w, y: tc.y / mm.h, name: o.name, weapon: o.weaponId, ok: !!(o.alive && !o.superJumpState), respawn: o.alive ? 0 : Math.ceil(o.respawnTimer || 0), actor: o };
     }
     const pad = G.level && G.level.spawnPads && G.level.spawnPads[me.team];
-    if (pad && mm) { mm.toCanvas(pad.x, pad.z, tc); out[3] = { x: tc.x / mm.w, y: tc.y / mm.h, name: 'Base', ok: true, home: true, pad }; }
+    if (pad && mm) { mm.toCanvas(pad.x, pad.z, tc); out[HB] = { x: tc.x / mm.w, y: tc.y / mm.h, name: 'Base', ok: true, home: true, pad }; }
     // team jump beacons (oldest first — the same order the number keys use)
-    const bs = G.subs && mm ? G.subs.beaconsFor(me.team).sort((x, y) => x.born - y.born).slice(0, NB - 4) : [];
+    const bs = G.subs && mm ? G.subs.beaconsFor(me.team).sort((x, y) => x.born - y.born).slice(0, NB - HB - 1) : [];
     bs.forEach((b, k) => {
       mm.toCanvas(b.pos.x, b.pos.z, tc);
       out[4 + k] = { x: tc.x / mm.w, y: tc.y / mm.h, name: `${b.owner === me ? 'Your' : b.owner.name + "'s"} beacon · ${b.uses}`, ok: true, dev: true, beacon: b };

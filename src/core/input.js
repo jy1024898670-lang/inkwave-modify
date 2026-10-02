@@ -63,12 +63,14 @@ export class Input {
   }
 
   requestLock() {
-    if (this.locked) return;
+    if (this.locked) return null;
     try {
       const p = this.canvas.requestPointerLock({ unadjustedMovement: true });
       // some platforms reject unadjustedMovement: fall back to a plain request
       if (p && p.catch) p.catch(() => { try { const q = this.canvas.requestPointerLock(); if (q && q.catch) q.catch(() => {}); } catch { /* ignore */ } });
+      return p;
     } catch { /* not allowed without a gesture */ }
+    return null;
   }
   exitLock() { if (document.pointerLockElement) document.exitPointerLock(); }
 

@@ -46,8 +46,8 @@ const CAM = { pos: V(-2.45, 2.25, 10.4), target: V(-0.95, 1.2, -1.7), fov: 32, n
 // on-screen gaps between the front row's heads (world-x gaps are not screen gaps from a camera left of the line-up).
 // front = your team (0 = you, front and centre), back = rivals on the dock.
 const bear = ([deg, z]) => [CAM.pos.x + (CAM.pos.z - z) * Math.tan((deg * Math.PI) / 180), z];
-const FRONT = [[16.4, 0.35], [10.6, 0.05], [22.2, 0.05], [4.8, -0.35]].map(bear);
-const BACK = [[13.3, -2.6], [7.6, -2.75], [18.9, -2.6], [24.2, -2.4]].map(bear);
+const FRONT = [[16.4, 0.35], [10.6, 0.05], [22.2, 0.05], [4.8, -0.35], [13.4, 0.15]].map(bear);
+const BACK = [[13.3, -2.6], [7.6, -2.75], [18.9, -2.6], [24.2, -2.4], [16.0, -2.5]].map(bear);
 const faceCam = (x, z, k = 0.72) => Math.atan2(CAM.pos.x - x, CAM.pos.z - z) * k;
 
 const QUALITY = {
@@ -105,7 +105,7 @@ export class LobbySet {
       return o;
     };
     const fr = FRONT.map((f, i) => i).sort((a, b) => FRONT[a][0] - FRONT[b][0]);
-    const laneX = [-3.5, -3.0, -2.5, -2.0], turnZ = [null, -1.0, -1.3, -1.6];
+    const laneX = [-3.7, -3.3, -2.9, -2.5, -2.1], turnZ = [null, -1.0, -1.2, -1.4, -1.6];
     fr.forEach((id, k) => {
       const [mx, mz] = FRONT[id], lx = laneX[k];
       const tz = k === 0 ? mz : turnZ[k];
@@ -115,13 +115,13 @@ export class LobbySet {
       out[id] = round(p);
     });
     const bk = BACK.map((f, i) => i).sort((a, b) => BACK[a][0] - BACK[b][0]);
-    const stepX = [0.55, 1.15, 1.75, 2.35], run = (D.z0 - ST.z0) / ST.n;
+    const stepX = [0.35, 0.85, 1.35, 1.85, 2.35], run = (D.z0 - ST.z0) / ST.n;
     bk.forEach((id, k) => {
       const [mx, mz] = BACK[id], sx = stepX[k];
       const p = [V(sx, 0, ALLEY.zMouth - 3), V(sx, 0, ST.z0 - 0.45)];
       for (let s = 1; s <= ST.n; s++) p.push(V(sx, (D.h * s) / ST.n, ST.z0 + (s - 0.5) * run));
       // keep the stair points sharp (y steps), round only the dock-top part
-      out[4 + id] = [...p, ...round([V(sx, D.h, D.z0 + 0.1), V(sx, D.h, D.z0 + 0.6), V(mx, D.h, mz - 1.5), V(mx, D.h, mz)], 0.8).slice(1)];
+      out[FRONT.length + id] = [...p, ...round([V(sx, D.h, D.z0 + 0.1), V(sx, D.h, D.z0 + 0.6), V(mx, D.h, mz - 1.5), V(mx, D.h, mz)], 0.8).slice(1)];
     });
     return out;
   }

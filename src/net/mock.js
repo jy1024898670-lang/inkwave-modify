@@ -52,7 +52,7 @@ export class MockNet {
       ready: (id, v) => this._patch(id, { ready: v == null ? !this._p(id)?.ready : !!v }),
       emote: (id, name) => { if (this._p(id)) this._emit('emote', { id, name: name || pick(EMOTES) }); },
       swap: (id, o) => this._patch(id, o || { weapon: pick(WEAPON_ORDER), style: LOOK.randomStyle(rnd) }),
-      fill: (n = 7) => { const others = () => (this.lobby ? this.lobby.players.length - 1 : 0); while (this.lobby && others() < Math.min(7, n)) this._add({}); },
+      fill: (n = 9) => { const others = () => (this.lobby ? this.lobby.players.length - 1 : 0); while (this.lobby && others() < Math.min(9, n)) this._add({}); },
       clear: () => { if (!this.lobby) return; for (const p of this.lobby.players.slice()) if (!p.you) this._drop(p.id, 'left'); },
       host: (id) => this._migrate(id),
       startMatch: () => this._launch(),
@@ -86,7 +86,7 @@ export class MockNet {
       time: (s.stageTimes && s.stageTimes[s.lastStage]) === 'dusk' ? 'dusk' : 'day',
       duration: s.matchLength === 90 ? 90 : 180, bots: true, difficulty: s.difficulty || 'normal',
       palette: G.game && G.game.paletteIndex ? G.game.paletteIndex() : 0,
-      players: [this._me(name, 0, true)], maxPlayers: 8,
+      players: [this._me(name, 0, true)], maxPlayers: 10,
     };
     this._botsPref = true;
     if (mapNoBots(this.lobby.map)) this.lobby.bots = false;
@@ -118,7 +118,7 @@ export class MockNet {
     const host = this._bot({ id: hostId, team: 0, host: true, ready: true });
     this.lobby = {
       map: pick(MAPS).id, time: rnd() < 0.4 ? 'dusk' : 'day', duration: rnd() < 0.3 ? 90 : 180, bots: rnd() < 0.8,
-      difficulty: pick(['easy', 'normal', 'normal', 'hard']), palette: (rnd() * TEAM_PALETTES.length) | 0, players: [host], maxPlayers: 8,
+      difficulty: pick(['easy', 'normal', 'normal', 'hard']), palette: (rnd() * TEAM_PALETTES.length) | 0, players: [host], maxPlayers: 10,
     };
     if (mapNoBots(this.lobby.map)) this.lobby.bots = false;   // (the stage rules, as a real host applies them)
     const others = this._fill ?? (2 + ((rnd() * 3) | 0));
@@ -150,7 +150,7 @@ export class MockNet {
       const want = o.team === 'auto' ? this._teamFor(me.id) : (o.team ? 1 : 0);
       const n = this.lobby.players.filter((p) => p.team === want && p.id !== me.id).length;
       if (want !== me.team) {
-        if (n >= 4) { this._later(this._rtt(), () => this._emit('error', { message: `Team ${want ? 'Bravo' : 'Alpha'} is full` })); }
+        if (n >= 5) { this._later(this._rtt(), () => this._emit('error', { message: `Team ${want ? 'Bravo' : 'Alpha'} is full` })); }
         else { patch.team = want; patch.ready = false; }
       }
     }

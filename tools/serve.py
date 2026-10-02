@@ -8,13 +8,18 @@ cache headers and browsers apply heuristic caching to ES modules.
 usage: python3 tools/serve.py [port=8490] [--dir <root>]
 """
 import http.server
+import json
 import os
 import socket
 import sys
+import threading
+from datetime import datetime, timezone
 from functools import partial
 
 port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 8490
 root = sys.argv[sys.argv.index('--dir') + 1] if '--dir' in sys.argv else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+diag_log = os.path.join(root, 'diag-log.jsonl')
+diag_lock = threading.Lock()
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -31,6 +36,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):   # quiet: only errors
         if args and str(args[1] if len(args) > 1 else '').startswith(('4', '5')):
             super().log_message(fmt, *args)
+
+    def do_POST(self):
+        # black-frame diagnostics from the running game (src/core/diag.js): append the batch to diag-log.jsonl
+        if self.path.rstrip('/') not in ('/diag', 'diag'):
+            self.send_error(404, 'unknown endpoint')
+            return
+        try:
+            n = int(self.headers.get('Content-Length') or 0)
+            body = self.rfile.read(n) if n else b'{}'
+            batch = json.loads(body or b'{}')
+        except Exception as exc:
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(str(exc).encode()[:200])
+            return
+        with diag_lock:
+            with open(diag_log, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'srv': datetime.now(timezone.utc).isoformat(), 'batch': batch}, ensure_ascii=False) + '\n')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(b'{"ok":1}')
 
 
 class Server(http.server.ThreadingHTTPServer):

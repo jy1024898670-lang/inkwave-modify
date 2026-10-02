@@ -12,6 +12,7 @@ import { h, clamp, splatSVG, restartAnim, easeOutCubic, fmtInt } from './ui-util
 import { GLYPHS } from './ui-icons.js';
 import { on, emit, G } from '../core/ctx.js';
 import { BOSS_NAME, BOSS_EPITHET, MOVE_ICONS, MOVE_LABELS, bossEmblem } from './boss-art.js';
+import { BOSS_MODE } from '../boss/bossMode.js';
 
 const NOTCHES = [2 / 3, 1 / 3];
 const CALL_MOVES = new Set(['slam', 'barrage', 'sweep', 'charge', 'crablets', 'frenzy']);
@@ -281,11 +282,12 @@ export class BossHud {
     return p;
   }
 
-  /** The 4v4 roster slots re-used for the squad: up to 8 kids, 4 either side of the timer, all in squad ink. */
+  /** The roster slots re-used for the squad: up to 8 kids (BOSS_MODE.squad), 4 either side of the timer, all in squad ink. */
   squadTeams(teams) {
     const all = [];
     for (const t of teams || []) for (const p of (t && t.players) || []) all.push(p);
-    return [{ color: teams && teams[0] && teams[0].color, players: all.slice(0, 4) }, { color: teams && teams[0] && teams[0].color, players: all.slice(4, 8) }];
+    const half = Math.ceil(BOSS_MODE.squad / 2);
+    return [{ color: teams && teams[0] && teams[0].color, players: all.slice(0, half) }, { color: teams && teams[0] && teams[0].color, players: all.slice(half, BOSS_MODE.squad) }];
   }
 
   // ================================================================ per frame

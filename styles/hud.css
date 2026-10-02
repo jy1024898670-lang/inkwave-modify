@@ -28,7 +28,7 @@
 .iw-squad { display: flex; gap: calc(var(--u) * .45); }
 .iw-squad--a { --tc: var(--self); --tc-l: var(--self-light); --tc-d: var(--self-dark); }
 .iw-squad--b { --tc: var(--enemy); --tc-l: var(--enemy-light); --tc-d: var(--enemy-dark); flex-direction: row-reverse; }
-.iw-sq { position: relative; display: block; width: calc(var(--u) * 3.6); height: calc(var(--u) * 3.6); transition: opacity .2s; }
+.iw-sq { position: relative; display: block; width: calc(var(--u) * 3.2); height: calc(var(--u) * 3.2); transition: opacity .2s; }
 .iw-sq.is-empty { opacity: 0; }
 .iw-sq__badge { position: absolute; inset: 0; filter: drop-shadow(0 calc(var(--u) * .18) 0 rgba(0, 0, 0, .45)); transition: filter .3s; }
 .iw-sq__shape { position: absolute; inset: 0; width: 100%; height: 100%; }

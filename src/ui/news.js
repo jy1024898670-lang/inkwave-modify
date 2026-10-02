@@ -38,7 +38,7 @@ const PAGES = [
     stamp: { text: 'NEW!', cls: 'is-new' },
     lede: 'Grab your crew — the harbour just got a whole lot louder!',
     bullets: [
-      [GLYPHS.key, 'Private rooms', 'share a code, squad up with up to 8 friends'],
+      [GLYPHS.key, 'Private rooms', 'share a code, squad up with up to 10 friends'],
       [GLYPHS.smile, 'The Lobby', 'watch your squad roll in, emote, ready up'],
       [GLYPHS.map, 'Cargo Terminal', 'a brand-new stage, online only', 'stages/cargo-day-sm.webp'],
     ],

@@ -629,12 +629,15 @@ export class SpecialSystem {
     }
   }
 
-  // strike targeting input from the player controller: cursor moves in minimap canvas pixels
-  aimMove(a, dxPx, dyPx, mm) {
+  // strike targeting input from the player controller: the cursor moves in the minimap's canvas space, through the
+  // map's own world↔canvas transform (mirrored axes, per-team flip) — the same transform the cursor renders with,
+  // so the direction always matches the map. The controller feeds canvas-px deltas sized at "a full sweep ≈ a 90°
+  // view turn", so speed is consistent across stages and mouse DPI.
+  aimMove(a, dxC, dyC, mm) {
     const s = a.specialActive;
     if (!s || s.id !== 'strike' || !s.aiming || !mm) return;
     const tc = mm.toCanvas(s.target.x, s.target.z, { x: 0, y: 0 });
-    tc.x = clamp(tc.x + dxPx, 0, mm.w); tc.y = clamp(tc.y + dyPx, 0, mm.h);
+    tc.x = clamp(tc.x + dxC, 0, mm.w); tc.y = clamp(tc.y + dyC, 0, mm.h);
     s.target.x = mm._worldX(tc.x); s.target.z = mm._worldZ(tc.y);
   }
   aimConfirm(a) { const s = a.specialActive; if (s && s.id === 'strike' && s.aiming && s.t > 0.25) s.confirm = true; }

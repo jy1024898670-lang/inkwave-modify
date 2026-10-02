@@ -24,6 +24,8 @@ import {
   sweepEdge, sweepClip, splatClip, splatCover, skinSwatch, irisSwatch, outfitIcon, tagArt, inkBand, dripsSVG, computeBossAwards,
 } from './menu-art.js';
 import { bossSilhouette, bossEmblem, BOSS_GLYPH, BOSS_NAME, BOSS_EPITHET } from './boss-art.js';
+import { lobbyList } from '../net/transport.js';
+import { BOSS_MODE } from '../boss/bossMode.js';
 import { WhatsNew } from './news.js';
 
 const SCREENS = ['loading', 'title', 'main', 'mode', 'loadout', 'setup', 'locker', 'settings', 'howto', 'credits', 'pause', 'results', 'online', 'lobby'];
@@ -47,7 +49,7 @@ const TITLE_ADJ = ['Fresh', 'Inky', 'Turf', 'Splashy', 'Rad', 'Sneaky', 'Deep-Se
 const TITLE_NOUN = ['Squidkid', 'Inkling', 'Turf Boss', 'Wave Rider', 'Splatter', 'Tentacle', 'Drip Lord', 'Sprayer', 'Rookie', 'Legend', 'Deck Hand', 'Sea Pickle', 'Kelp Fan', 'Ink Slinger', 'Plaza Star', 'Harbor Kid'];
 const JOIN_ERR = {
   'Room not found': { title: 'ROOM NOT FOUND', text: 'No room uses that code. Double-check it with your friend — rooms close when everyone leaves.', icon: 'question' },
-  'Room is full': { title: 'ROOM IS FULL', text: 'All 8 spots are taken. Ask the host to make space, or open a room of your own.', icon: 'users' },
+  'Room is full': { title: 'ROOM IS FULL', text: 'Every spot is taken. Ask the host to make space, or open a room of your own.', icon: 'users' },
   'Match in progress': { title: 'MATCH IN PROGRESS', text: 'They are mid-match right now. Try again in a few minutes — the room reopens after the results.', icon: 'clock' },
   'Could not connect': { title: 'CAN\u2019T CONNECT', text: 'The INKWAVE servers didn\u2019t answer. Check your connection, then try again.', icon: 'signal' },
   'Room code taken': { title: 'TRY AGAIN', text: 'That room code was just taken. Give it another go.', icon: 'reset' },
@@ -157,8 +159,8 @@ const LOCKER_TABS = [
   { id: 'outfit', label: 'OUTFIT', icon: 'shirt', sections: ['outfit'] },
 ];
 const MENU_DESC = {
-  play: 'Turf War or Zone Control 4 v 4 — or team up with the bots against HULLBREAKER in a Boss Battle',
-  online: 'Private rooms for up to 8 friends — create one or join with a room code',
+  play: 'Turf War or Zone Control 5 v 5 — or team up with the bots against HULLBREAKER in a Boss Battle',
+  online: 'Private rooms for up to 10 friends — create one or join with a room code',
   loadout: 'Choose your weapon, sub and special — or practice with it',
   locker: 'Choose your squidkid — tentacles, headgear, eyes, skin and outfit',
   settings: 'Controls, video, audio and gameplay options',
@@ -953,14 +955,14 @@ export class Menus {
     const bossLen = [180, 240, 300].includes(s.bossLength) ? s.bossLength : 240;
     const MODES = [
       { id: 'turf', name: 'TURF WAR', kicker: 'CLASSIC', img: stageArt('tidewater', 'day'),
-        blurb: 'Two teams of four, one harbour. Ink the most ground before the whistle.',
-        chips: [[GLYPHS.users, '4 V 4'], [GLYPHS.clock, durLabel(s.matchLength || MATCH.defaultDuration || 180)], [GLYPHS.bot, 'VS BOTS']] },
+        blurb: 'Two teams of five, one harbour. Ink the most ground before the whistle.',
+        chips: [[GLYPHS.users, `${MATCH.teamSize} V ${MATCH.teamSize}`], [GLYPHS.clock, durLabel(s.matchLength || MATCH.defaultDuration || 180)], [GLYPHS.bot, 'VS BOTS']] },
       { id: 'zones', name: 'ZONE CONTROL', kicker: 'RANKED RULES', img: stageArt('crossmarket', 'day'),
         blurb: 'Take the live zone and hold it: your count ticks down from 100. The zone moves, so keep up!',
-        chips: [[GLYPHS.users, '4 V 4'], [GLYPHS.clock, `${Math.round((ZONES.duration || 300) / 60)}:00 + OT`], [ZONE_GLYPH, 'ROTATING ZONES']] },
+        chips: [[GLYPHS.users, `${MATCH.teamSize} V ${MATCH.teamSize}`], [GLYPHS.clock, `${Math.round((ZONES.duration || 300) / 60)}:00 + OT`], [ZONE_GLYPH, 'ROTATING ZONES']] },
       { id: 'boss', name: 'BOSS BATTLE', kicker: 'CO-OP', img: stageArt('kelpline', 'dusk'), badge: 'NEW!', beta: true,
         blurb: `Everyone's one squad against ${BOSS_NAME}, a giant crab in a rusted container. Sink it before time runs out!`,
-        chips: [[GLYPHS.users, 'SQUAD OF 8'], [GLYPHS.clock, durLabel(bossLen)], [BOSS_GLYPH, '1 BOSS']] },
+        chips: [[GLYPHS.users, `SQUAD OF ${BOSS_MODE.squad}`], [GLYPHS.clock, durLabel(bossLen)], [BOSS_GLYPH, '1 BOSS']] },
     ];
     let picking = false;
     const pick = (id, c) => {
@@ -1141,8 +1143,9 @@ export class Menus {
       setTimeout(go, 280); // never hold a reveal back for long
     };
     let artSeed = 3;
-    const showArt = (kind, fromEl) => {
-      const L = makeLayer(st.mapId, timeOf(st.mapId));
+    const showArt = (kind, fromEl, mid) => {
+      const pm = mid || st.mapId;
+      const L = makeLayer(pm, timeOf(pm));
       const finish = () => {
         L.style.clipPath = '';
         for (let n = L.previousSibling; n;) { const p = n.previousSibling; n.remove(); n = p; }
@@ -1154,7 +1157,7 @@ export class Menus {
         return;
       }
       const W = art.clientWidth || 1, H = art.clientHeight || 1;
-      const time = timeOf(st.mapId);
+      const time = timeOf(pm);
       const ink = h('div', { class: `iw-ss__ink is-${kind} is-${time}` });
       const ink2 = kind === 'stage' ? h('div', { class: 'iw-ss__ink is-stage is-b' }) : null;
       const seed = (artSeed += 1);
@@ -1219,6 +1222,43 @@ export class Menus {
     };
     // more stages than fit: compact tickets in a scrolling list (the focused one is kept in view)
     const listEl = h('div', { class: 'iw-ss__list' + (tickets.length > 3 ? ' is-many' : '') }, tickets);
+    // collapsible stage picker: the current stage shows as one row; a chevron expands the full list
+    // (the left column also holds BOT SKILL / MATCH LENGTH, so the list must not eat the whole column)
+    const CHEV_DOWN = `<svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden="true"><path d="M18 24 L32 40 L46 24" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const stageRow = h('button', { class: 'iw-stagerow iw-in iw-in--left' },
+      h('span', { class: 'iw-stagerow__art' }), h('span', { class: 'iw-stagerow__name' }),
+      h('span', { class: 'iw-stagerow__num' }), h('span', { class: 'iw-stagerow__chev', html: CHEV_DOWN }));
+    let stageOpen = false;
+    const openStage = (open) => {
+      stageOpen = open;
+      listEl.classList.toggle('is-open', open);
+      stageRow.classList.toggle('is-open', open);
+      if (!open) previewFor(st.mapId);   // closing the list reverts any hover preview
+    };
+    const refreshStageRow = () => {
+      const m = byId(st.mapId), i = maps.indexOf(m);
+      const t = timeOf(m.id);
+      stageRow.classList.toggle('is-dusk', t === 'dusk');
+      stageRow.classList.toggle('is-sel', true);
+      stageRow.querySelector('.iw-stagerow__name').textContent = m.name;
+      stageRow.querySelector('.iw-stagerow__num').textContent = `${String(i + 1).padStart(2, '0')} / ${String(maps.length).padStart(2, '0')}`;
+      const art = stageRow.querySelector('.iw-stagerow__art');
+      if (art.dataset.src !== `${m.id}|${t}`) {
+        art.dataset.src = `${m.id}|${t}`;
+        art.innerHTML = m.thumb || mapThumb(m, i + 2);
+      }
+    };
+    // mouse + keyboard both land in accept (no extra click listener — _bind already wires clicks)
+    this._bind(stageRow, {
+      id: 'stage-row', type: 'row',
+      accept: () => {
+        this._sfx('ui_toggle', 0.4);
+        openStage(!stageOpen);
+        if (stageOpen) this._setFocus(selTicket());
+      },
+      adjust: () => { if (!stageOpen) { this._sfx('ui_toggle', 0.4); openStage(true); this._setFocus(selTicket()); } },
+    });
+    // the list stays open after a pick — only the chevron (stageRow) closes it
 
     // ---- match options (bot skill + length)
     const dOpts = Object.values(diffs).map((d) => [d.id, h('span', { class: 'iw-diffopt' }, h('span', { class: 'iw-pips' }, Array.from({ length: 3 }, (_, k) => h('i', { class: k < (DIFF_INFO[d.id]?.pips || 2) ? 'on' : '' }))), d.name)]);
@@ -1278,23 +1318,34 @@ export class Menus {
     };
 
     // ---- state changes
-    const renderTime = (anim) => {
-      const t = timeOf(st.mapId);
+    const renderTime = (anim, mid) => {
+      const t = timeOf(mid || st.mapId);
       tgl.dataset.time = t; hero.dataset.time = t; el.dataset.time = t;
       optDay.classList.toggle('is-on', t === 'day'); optDusk.classList.toggle('is-on', t === 'dusk');
       timeText.textContent = TIME_INFO[t].text;
       if (anim) { restartAnim(tgl, 'is-flip'); restartAnim(timeText, 'is-in'); }
       updateStart();
     };
-    const renderStage = (anim) => {
-      const m = byId(st.mapId), i = maps.indexOf(m);
+    const renderStage = (anim, mid) => {
+      const m = byId(mid || st.mapId), i = maps.indexOf(m);
       nameEl.innerHTML = m.name.split(' ').map((w, wi) => `<span class="iw-ss__word">${[...w].map((ch, k) => `<span style="--i:${wi * 4 + k}">${esc(ch)}</span>`).join('')}</span>`).join(' ');
+      nameEl.setAttribute('data-i18n-html', m.name);   // per-character spans hide the name from the per-node i18n pass — the hook translates the whole node
       blurbEl.textContent = m.blurb || '';
       counter.innerHTML = `STAGE <b>${String(i + 1).padStart(2, '0')}</b><em>/ ${String(maps.length).padStart(2, '0')}</em>`;
       layoutMap.innerHTML = m.thumb || mapThumb(m, i + 2);
       if (anim) { restartAnim(caption, 'is-in'); restartAnim(layoutEl, 'is-in'); restartAnim(counter, 'is-in'); }
-      renderTime(false);
+      renderTime(false, mid);
     };
+    // mouse hover: the big preview follows the cursor over the ticket list; leaving the list (or collapsing it) reverts
+    let hoverId = st.mapId;
+    const previewFor = (mid) => {
+      if (!byId(mid) || mid === hoverId) return;
+      hoverId = mid;
+      renderStage(false, mid);
+      showArt('instant', null, mid);
+    };
+    for (const c of tickets) c.addEventListener('mouseenter', () => previewFor(c._mid));
+    listEl.addEventListener('mouseleave', () => previewFor(st.mapId));
     const lockIn = () => {
       this._sfx('ui_confirm');
       restartAnim(start, 'is-recharge');
@@ -1310,11 +1361,13 @@ export class Menus {
       st.mapId = id;
       this._setSetting('lastStage', id);
       tickets.forEach(refreshTicket);
+      refreshStageRow();
       if (t) { restartAnim(t, 'is-pick'); this._burstAt(t.querySelector('.iw-ticket__num'), { count: 9, dist: 4, size: 0.7 }); }
       this._sfx('ui_toggle'); this._sfx('splat_small', 0.06);
       renderStage(true);
       showArt('stage', fromEl || t);
       setBg();
+      hoverId = st.mapId;
       restartAnim(start, 'is-recharge');
       if (how === 'lock') lockIn();
     };
@@ -1328,7 +1381,7 @@ export class Menus {
       this._sfx('ui_toggle'); this._sfx(time === 'dusk' ? 'squid_in' : 'squid_out', 0.08);
       const t = tickets.find((x) => x._mid === id);
       if (t) { refreshTicket(t); restartAnim(t, 'is-timeflip'); }
-      if (id === st.mapId) { renderTime(true); showArt('time'); setBg(); }
+      if (id === st.mapId) { refreshStageRow(); hoverId = st.mapId; renderTime(true); showArt('time'); setBg(); }
       return true;
     };
     this._bind(tgl, { id: 'time', type: 'row', accept: () => setTime(st.mapId, timeOf(st.mapId) === 'day' ? 'dusk' : 'day', 'toggle'), adjust: (d) => setTime(st.mapId, d < 0 ? 'day' : 'dusk', 'key') });
@@ -1338,11 +1391,11 @@ export class Menus {
 
     const MI = MODE_INFO[st.mode];
     const head = this._header(MI.label, { sub: boss ? `Pick a stage and the time of day · your squad of 8 vs ${BOSS_NAME}`
-      : st.mode === 'zones' ? 'Pick a stage and the time of day · 4 v 4 against bots · 5:00 + overtime' : 'Pick a stage and the time of day · 4 v 4 against bots' });
+      : st.mode === 'zones' ? 'Pick a stage and the time of day · 5 v 5 against bots · 5:00 + overtime' : 'Pick a stage and the time of day · 5 v 5 against bots' });
     const el = h('div', { class: 'iw-screen iw-setup iw-ss' + (boss ? ' is-boss' : '') },
       bg, h('div', { class: 'iw-ss__scrim' }),
       head,
-      h('div', { class: 'iw-ss__left' }, h('div', { class: 'iw-seclabel iw-in' }, h('i', { html: GLYPHS.map }), 'STAGES'), listEl, matchPanel),
+      h('div', { class: 'iw-ss__left' }, h('div', { class: 'iw-seclabel iw-in' }, h('i', { html: GLYPHS.map }), 'STAGES'), stageRow, listEl, matchPanel),
       hero,
       h('div', { class: 'iw-ss__foot' }, weaponChip, lookChip, start),
       this._prompts([[['↑', '↓'], 'DPad', 'Stage'], [['←', '→'], null, 'Day · Dusk'], ['R', 'Y', 'Mode'], ['Enter', 'A', 'Select'], ['Esc', 'B', 'Back']]));
@@ -1356,12 +1409,14 @@ export class Menus {
     };
 
     // explicit focus graph (rows with ←/→ adjust would otherwise trap the pad in a column)
+    // stage picker: collapsed → the stage row is the stop; expanded → arrows dive into the ticket list
+    // (every stageOpen-dependent edge is a function — resolved on each press, not at build time)
     const selTicket = () => tickets.find((x) => x._mid === st.mapId) || tickets[0];
     const graph = new Map();
-    tickets.forEach((t, i) => graph.set(t, { up: tickets[i - 1] || null, down: tickets[i + 1] || diffRow }));
+    graph.set(stageRow, { up: null, down: () => (stageOpen ? selTicket() : diffRow), left: null, right: null });
+    tickets.forEach((t, i) => graph.set(t, { up: i === 0 ? (() => (stageOpen ? stageRow : null)) : tickets[i - 1], down: tickets[i + 1] || diffRow }));
     const lenOrDiff = () => (st.mode === 'zones' ? diffRow : lenRow);
-    graph.set(tickets[0], { up: null, down: tickets[1] || diffRow });
-    graph.set(diffRow, { up: selTicket, down: () => (st.mode === 'zones' ? start : lenRow) });
+    graph.set(diffRow, { up: () => (stageOpen ? selTicket() : stageRow), down: () => (st.mode === 'zones' ? start : lenRow) });
     graph.set(lenRow, { up: diffRow, down: start });
     graph.set(tgl, { up: null, down: start });
     graph.set(weaponChip, { up: tgl, down: null, left: lenOrDiff, right: lookChip });
@@ -1369,19 +1424,25 @@ export class Menus {
     graph.set(start, { up: tgl, down: null, left: lookChip, right: null });
 
     tickets.forEach(refreshTicket);
+    refreshStageRow();
     renderStage(false);
     renderMode();
     showArt('instant');
     setBg();
     return {
-      el, initial: selTicket(),
+      el, initial: stageRow,
       onFocus: (f) => {
-        if (f._mid && this._navFocus) select(f._mid, 'nav', f);
+        if (f._mid && this._navFocus) {
+          select(f._mid, 'nav', f);          // select first (updates st.mapId), then expand
+          if (!stageOpen) openStage(true);   // diving into a ticket always expands the list
+        }
+        if (f === stageRow) refreshStageRow();
         if (f._mid && listEl.classList.contains('is-many')) f.scrollIntoView?.({ block: 'nearest', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
       },
       onNav: (dir) => {
         if (dir === 'tab_prev' || dir === 'tab_next') { setTime(st.mapId, dir === 'tab_prev' ? 'day' : 'dusk', 'tab'); return true; }
         if (dir === 'alt') { this._sfx('ui_back'); this._go('mode'); return true; }   // R / Y: back to the mode cards
+        if (dir === 'down' && this._focus === stageRow && !stageOpen) { this._sfx('ui_toggle', 0.4); openStage(true); this._setFocus(selTicket()); return true; }
         return this._graphNav(graph, dir);
       },
       tick: (dt) => {
@@ -2300,7 +2361,7 @@ export class Menus {
     const cast = h('div', { class: 'iw-cred__cast' }, BOT_NAMES.map((n, i) => h('span', { style: { '--c': i % 2 ? 'var(--b)' : 'var(--a)' } }, h('i', { html: SQUID }), n)));
     const roll = h('div', { class: 'iw-cred__roll' },
       h('div', { class: 'iw-cred__logo', html: logoMarkup(GAME_TITLE, GAME_SUBTITLE, 'md') }),
-      h('p', { class: 'iw-cred__lead' }, 'An original 4 v 4 turf-war shooter.'),
+      h('p', { class: 'iw-cred__lead' }, 'An original 5 v 5 turf-war shooter.'),
       sec('Original game', 'INKWAVE by Jayden Davis', h('p', { class: 'dim' }, 'MIT License · github.com/jaydendavisnc/inkwave')),
       sec('Made with', 'Procedural everything — squidkids, weapons, stage, ink, music and sound are all generated in code.'),
       sec('Rendering', 'three.js', h('p', { class: 'dim' }, 'by the three.js authors & contributors')),
@@ -2453,12 +2514,52 @@ export class Menus {
     this._fx(join, { tilt: 0, press: false });
     join.addEventListener('click', () => { if (st.mode === 'idle') enterEntry(firstEmpty()); });
 
+    // ---- PUBLIC ROOMS: the live lobby list (auto-refreshing); a row click fills the code and joins that room
+    const roomsEmpty = h('div', { class: 'iw-hr__empty' }, h('i', { html: GLYPHS.users }), h('b', null, 'No public rooms yet'), h('small', null, 'Create a room and mark it public'));
+    const roomsList = h('div', { class: 'iw-hr__list' });
+    const rooms = h('div', { class: 'iw-hub__rooms iw-in iw-in--up' },
+      h('span', { class: 'iw-hr__bg' }, h('span', { class: 'iw-hr__ink' })),
+      h('div', { class: 'iw-hr__head' },
+        h('span', { class: 'iw-hubcard__kicker iw-tape iw-hr__tape' }, h('i', { html: GLYPHS.flag }), 'PUBLIC ROOMS'),
+        h('span', { class: 'iw-hr__live' }, h('i'), 'LIVE')),
+      h('div', { class: 'iw-hr__body' }, roomsEmpty, roomsList));
+    const joinPublic = (r) => {
+      if (st.busy || st.mode === 'connecting') return;
+      const c = String(r.code).toUpperCase();
+      if (c.length !== 5) return;
+      st.code = [...c];
+      st.pick = st.code.map((ch) => CODE_ABC.indexOf(ch));
+      st.caret = 4;
+      clearError();
+      if (st.mode === 'idle' || st.mode === 'error') enterEntry(4);
+      render();
+      doJoin();
+    };
+    const renderRooms = (list) => {
+      if (!st.alive) return;
+      roomsList.replaceChildren();
+      if (!list.length) { roomsEmpty.style.display = ''; roomsList.style.display = 'none'; return; }
+      roomsEmpty.style.display = 'none'; roomsList.style.display = '';
+      for (const r of list.slice(0, 6)) {
+        const mi = MODE_INFO[r.mode] || MODE_INFO.turf, mp = MAPS.find((m) => m.id === r.map);
+        const row = h('div', { class: 'iw-roomrow' + (r.inMatch ? ' is-busy' : '') },
+          h('span', { class: 'iw-roomrow__code' }, r.code),
+          h('span', { class: 'iw-roomrow__info' }, h('b', null, mi.name), h('small', null, mp ? mp.name : String(r.map))),
+          h('span', { class: 'iw-roomrow__count' }, `${Math.min(r.players || 0, r.max || 10)}/${r.max || 10}`),
+          h('span', { class: 'iw-roomrow__state' + (r.inMatch ? ' is-busy' : '') }, r.inMatch ? 'In match' : 'Waiting'));
+        row.addEventListener('pointerdown', (e) => e.preventDefault());
+        row.addEventListener('click', (e) => { e.stopPropagation(); joinPublic(r); });
+        roomsList.appendChild(row);
+      }
+    };
+    const loadRooms = () => { if (st.alive) lobbyList().then(renderRooms).catch(() => { /* relay offline: keep the old list */ }); };
+
     // ---- how it works: three little stickers, comic-strip style
     const steps = h('div', { class: 'iw-hub__steps iw-in iw-in--up' },
       [['1', 'Create or join', GLYPHS.flag], ['2', 'Share the code', GLYPHS.copy], ['3', 'Ready up & ink!', GLYPHS.check]].map(([n, t, ic], i) =>
         h('div', { class: 'iw-hubstep', style: { '--tilt': `${[-2, 1.5, -1][i]}deg` } }, h('b', { html: splatSVG({ seed: 30 + i * 7, cls: 'iw-fa', r: 56, arms: 8, drops: 2 }) }, h('span', null, n)), h('i', { html: ic }), h('span', null, t))));
 
-    const body = h('div', { class: 'iw-hub__body' }, create, join, steps);
+    const body = h('div', { class: 'iw-hub__body' }, create, join, rooms, steps);
 
     // ---- you: your splashtag (the name on it is editable) + weapon + look (the kid stands on the pedestal to the right)
     const nameRow = this._nameRow();
@@ -2501,7 +2602,7 @@ export class Menus {
     promptsBusy.classList.add('is-busy');
     const el = h('div', { class: 'iw-screen iw-online' },
       h('div', { class: 'iw-scrim-left' }),
-      this._header('ONLINE', { sub: 'Private rooms · 4 v 4 · up to 8 squidkids' }),
+      this._header('ONLINE', { sub: 'Private rooms · 5 v 5 · up to 10 squidkids' }),
       body, me, promptsIdle, promptsEntry, promptsBusy);
 
     // ---- code entry
@@ -2703,6 +2804,8 @@ export class Menus {
     };
     document.addEventListener('paste', onPaste);
     render();
+    loadRooms();
+    st.roomsT = setInterval(loadRooms, 5000);
 
     // explicit focus graph: cards on the left, you on the right
     const graph = new Map();
@@ -2761,6 +2864,7 @@ export class Menus {
       destroy: () => {
         st.alive = false;
         clearTimeout(st.autoT);
+        clearInterval(st.roomsT);
         if (st.busy) { st.token++; st.busy = false; safeCall(() => this._net() && this._net().leave()); } // left mid-connect
         document.removeEventListener('paste', onPaste);
         const inp = nameRow._input;
@@ -2812,7 +2916,7 @@ export class Menus {
     const pipsA = h('span', { class: 'iw-lob__pips is-a' }), pipsB = h('span', { class: 'iw-lob__pips is-b' });
     const statusTxt = h('span', { class: 'iw-lob__statustxt' });
     const status = h('div', { class: 'iw-lob__status iw-in iw-in--down' },
-      h('div', { class: 'iw-lob__count' }, h('small', { class: 'iw-lob__countlbl' }, 'SQUIDKIDS'), countEl, h('small', null, '/8')),
+      h('div', { class: 'iw-lob__count' }, h('small', { class: 'iw-lob__countlbl' }, 'SQUIDKIDS'), countEl, h('small', null, '/' + (lobMode() === 'boss' ? 8 : 10))),
       h('div', { class: 'iw-lob__teams' },
         h('div', { class: 'iw-lob__tline is-a' }, h('span', { class: 'iw-lob__tl is-a' }, TEAM_LABEL[0]), pipsA),
         h('em', { class: 'iw-lob__vs', html: splatSVG({ seed: 5, fill: '#15121c', r: 52, arms: 8, drops: 2 }) }, h('b', null, 'VS')),
@@ -2868,6 +2972,10 @@ export class Menus {
     const botsNote = h('small', { class: 'iw-lset__note' });
     const rBots = srow('bots', GLYPHS.bot, 'FILL WITH BOTS', botTgl.el, botsNote);
     const rDiff = srow('diff', GLYPHS.swords, 'BOT SKILL', diffSeg.el);
+    // public lobby: the host marks the room public so strangers can see it in the ONLINE list (guests see the state only)
+    const pubTgl = this._toggle({ key: '_public', onChange: (v) => { if (isHost()) safeCall(() => net.setPublic(v)); } }, !!(net && net.public));
+    const pubNote = h('small', { class: 'iw-lset__note' });
+    const rPublic = srow('public', GLYPHS.users, 'PUBLIC ROOM', pubTgl.el, pubNote);
     const diffLbl = rDiff.querySelector('.iw-lset__label');
     diffLbl.lastChild.textContent = '';   // label text lives in its own span so boss mode can rename it
     diffLbl.appendChild(h('span', { class: 'iw-lset__lbltxt' }, 'BOT SKILL'));
@@ -2882,11 +2990,11 @@ export class Menus {
     rMode._id = 'mode';
     modeArrows.children[0].addEventListener('click', (e) => { e.stopPropagation(); this._setFocus(rMode); setMode(-1); });
     modeArrows.children[1].addEventListener('click', (e) => { e.stopPropagation(); this._setFocus(rMode); setMode(1); });
-    const setRows = [rMode, rStage, rTime, rLen, rPal, rBots, rDiff];
+    const setRows = [rMode, rStage, rTime, rLen, rPal, rBots, rDiff, rPublic];
     for (const r of setRows) r.dataset.curPad = '2';   // the rail is dense: a tight ring that never covers the next label
     const side = h('div', { class: 'iw-lob__side iw-in iw-in--left' },
       h('div', { class: 'iw-lob__sidehead' }, rMode, lock, hostChip),
-      h('div', { class: 'iw-lset__panel' }, rStage, rPair, rPal, rBots, rDiff,
+      h('div', { class: 'iw-lset__panel' }, rStage, rPair, rPal, rBots, rDiff, rPublic,
         h('span', { class: 'iw-lset__drips', html: dripsSVG([[40, 1.2], [92, 0.7], [250, 1.6], [330, 0.9]], 'iw-fa') })));
 
     // ---- your controls (bottom bar)
@@ -3193,6 +3301,7 @@ export class Menus {
           else if (r === rLen) this._bind(r, { id: 'set-len', type: 'row', adjust: lenSeg.adjust, accept: lenSeg.cycle });
           else if (r === rBots) this._bind(r, { id: 'set-bots', type: 'row', adjust: (d) => (botsLocked() ? lockedBots() : botTgl.adjust(d)), accept: () => (botsLocked() ? lockedBots() : botTgl.accept()) });
           else if (r === rDiff) this._bind(r, { id: 'set-diff', type: 'row', adjust: (d) => { if (lob.bots === false) { this._sfx('ui_error', 0.15); return; } diffSeg.adjust(d); }, accept: () => { if (lob.bots !== false) diffSeg.cycle(); } });
+          else if (r === rPublic) this._bind(r, { id: 'set-public', type: 'row', adjust: pubTgl.adjust, accept: pubTgl.accept });
         } else if (!host && r.dataset.nav) { delete r.dataset.nav; if (this._focus === r) this._setFocus(wChip); }
       }
     };
@@ -3258,7 +3367,7 @@ export class Menus {
       const na = ps.filter((p) => teamOf(p) === 0).length, nb = ps.length - na;
       countEl.textContent = String(ps.length);
       const pip = (host, n, t) => {
-        if (host.childElementCount !== 4) { host.innerHTML = ''; for (let k = 0; k < 4; k++) host.appendChild(h('i', { html: GLYPHS.squidlet })); }
+        if (host.childElementCount !== MATCH.teamSize) { host.innerHTML = ''; for (let k = 0; k < MATCH.teamSize; k++) host.appendChild(h('i', { html: GLYPHS.squidlet })); }
         [...host.children].forEach((c, k) => {
           const pl = ps.filter((p) => teamOf(p) === t)[k];
           const cls = pl ? (pl.ready || pl.host ? 'is-on is-ready' : 'is-on') : lob.bots !== false ? 'is-bot' : '';
@@ -3301,6 +3410,8 @@ export class Menus {
       palSeg.refresh(palIdx());
       { const P0 = TEAM_PALETTES[palIdx()]; palName.textContent = P0 ? P0.names.join(' vs ') : ''; }
       botTgl.refresh(lob.bots !== false);
+      pubTgl.refresh(!!net.public);
+      pubNote.textContent = net.public ? 'Listed in the ONLINE lobby — anyone can join' : '';
       diffSeg.refresh(diffs[lob.difficulty] ? lob.difficulty : 'normal');
       const bm = bossMode(), md = lobMode(), zm = md === 'zones';
       if (rMode._shown !== md) {
@@ -3391,6 +3502,7 @@ export class Menus {
     // ---- session events
     const sub = (ev, fn) => { if (net && net.on) S.subs.push(net.on(ev, fn)); };
     sub('lobby', (e) => { if (!S.alive) return; lob = (e && e.lobby) || net.lobby || lob; render(true); });
+    sub('meta', () => { if (S.alive) render(true); });   // the room's public state changed (host toggled it, or the host passed on)
     // arrivals / departures are batched into one toast ("Otto, Glub +2 joined"); the room filling in as you arrive
     // is shown by the line-up itself, not by a pile of toasts
     sub('join', (e) => {
@@ -3948,12 +4060,13 @@ export class Menus {
     if (zd) {
       const ZC = ZONES.count || 100, W = zd.winner === 1 ? 1 : 0;
       const cnt = zd.counts.map((c) => Math.max(0, Math.ceil(c - 1e-6))), pen = zd.penalty;
-      const done = (t) => clamp((ZC - cnt[t]) / ZC) * 0.5, penW = (t) => clamp(Math.min(pen[t], cnt[t]) / ZC) * 0.5;
+      // bar length = the remaining count (drains toward zero), so it matches the score numbers — the team closest to 0 wins
+      const rem = (t) => clamp(cnt[t] / ZC) * 0.5, penW = (t) => clamp(Math.min(pen[t], cnt[t]) / ZC) * 0.5;
       const pens = [0, 1].map((t) => h('em', { class: 'iw-zres__pen' + (pen[t] > 0 ? '' : ' is-none') }, `+${pen[t]}`));
       numA.textContent = String(ZC); numB.textContent = String(ZC);
       zc = { ZC, cnt, pens };
       coverBar.classList.add('iw-cover--zones');
-      coverBar.style.setProperty('--pa', done(0).toFixed(4)); coverBar.style.setProperty('--pb', done(1).toFixed(4));
+      coverBar.style.setProperty('--pa', rem(0).toFixed(4)); coverBar.style.setProperty('--pb', rem(1).toFixed(4));
       coverBar.style.setProperty('--qa', penW(0).toFixed(4)); coverBar.style.setProperty('--qb', penW(1).toFixed(4));
       coverBar.append(h('i', { class: 'iw-zbar__pen is-a' }), h('i', { class: 'iw-zbar__pen is-b' }));
       cover = h('div', { class: 'iw-res__cover iw-res__cover--zones iw-in' + (W === 0 ? ' is-a' : ' is-b') },
@@ -4002,8 +4115,8 @@ export class Menus {
         h('div', { class: 'iw-ttable__head iw-in' },
           h('span', { class: 'iw-ttable__team' }, h('i', { class: 'iw-ttable__dot' }), names[team] || TEAM_NAMES[team], isWin ? h('em', { class: 'iw-ttable__win' }, h('i', { html: GLYPHS.crown }), 'WIN') : null),
           h('span', { class: 'iw-ttable__col', title: 'Turf inked' }, h('i', { html: GLYPHS.drop }), 'TURF'),
-          h('span', { class: 'iw-ttable__col', title: 'Splats' }, h('i', { html: SPLAT_ICON })),
-          h('span', { class: 'iw-ttable__col', title: 'Times splatted' }, h('i', { html: DEATH_ICON }))),
+          h('span', { class: 'iw-ttable__col', title: 'Splats' }, h('i', { html: SPLAT_ICON }), h('small', null, 'SPLATS')),
+          h('span', { class: 'iw-ttable__col', title: 'Times splatted' }, h('i', { html: DEATH_ICON }), h('small', null, 'DEATHS'))),
         rows.map((p, ri) => {
           const turfNum = h('b', null, '0');
           const turfBar = h('i', { class: 'iw-prow__turfbar' });
@@ -4089,8 +4202,8 @@ export class Menus {
     const hostBack = online && G.net && G.net.isHost && typeof this.api.netBackToLobby === 'function';
     const rematch = hostBack
       ? this._btn({ id: 'toroom', label: 'TO THE ROOM', icon: GLYPHS.users, cls: 'iw-btn--wide iw-btn--primary iw-btn--toroom iw-in iw-in--pop', sound: 'ui_confirm', accept: () => safeCall(() => this.api.netBackToLobby()) })
-      : online ? null : this._btn({ id: 'rematch', label: 'REMATCH', icon: GLYPHS.reset, cls: 'iw-btn--wide iw-btn--primary iw-in iw-in--pop', sound: 'ui_confirm', accept: () => {
-        safeCall(() => this.api.rematch && this.api.rematch());
+      : online ? null : this._btn({ id: 'rematch', label: 'REMATCH', icon: GLYPHS.reset, sub: 'PICK A STAGE', cls: 'iw-btn--wide iw-btn--primary iw-in iw-in--pop', sound: 'ui_confirm', accept: () => {
+        this.show('setup', { wipe: true });   // one more round → back to the map screen (change stage / weapon / look, then START)
       } });
     if (hostBack) rematch.querySelector('.iw-btn__text').appendChild(h('span', { class: 'iw-btn__sub' }, 'Everyone comes with you'));
     const home = online

@@ -474,7 +474,7 @@ export const MATCH = {
   defaultDuration: 180,
   maxDuration: 180,          // hard cap (3 min): the final-minute song expects rounds of at most this length
   finalCountdown: 10,
-  teamSize: 4,
+  teamSize: 5,
   pointsPerM2: 1.0,          // turf points per square metre newly inked
   // death markers: a squid-skull in the victim's ink where anyone was splatted (world view, minimap, TAB map)
   deathMarkLife: 5,          // seconds on screen

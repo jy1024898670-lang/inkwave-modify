@@ -57,14 +57,22 @@ export class PlayerController {
     const friction = as ? lerp(1, 0.58, as.closeness * as.strength) : 1;
     let lookActive = false;
     const mdx = inp.mouse.dx, mdy = inp.mouse.dy;
-    // Vortex Strike targeting: the mouse / right stick drives a cursor over the (opened) stage map, fire launches
+    // Vortex Strike targeting: the mouse / right stick move the target in the stage map's own canvas space — the
+    // same transform the cursor renders with (toCanvas/_worldX/_worldZ), so the direction always matches what you
+    // see on the map (canvas x = (maxX - x) * s, i.e. world-mirrored, and it flips per viewer team). A full map
+    // sweep in either direction costs about the same mouse effort as a 90° view turn (view sens 0.0021 rad/px).
     const spx = a.specialActive;
     if (spx && spx.id === 'strike' && spx.aiming) {
       const mm = G.game?.minimap;
-      let cx = mdx * 0.45 * (s.sensitivity ?? 1), cy = mdy * 0.45 * (s.sensitivity ?? 1);
-      if (inp.pad) { inp.padStick(2, 3, _stick, 0.12, 0.96); cx += _stick.x * 320 * dt; cy += _stick.y * 320 * dt; inp.padStick(0, 1, _stick, 0.14, 0.95); cx += _stick.x * 320 * dt; cy += _stick.y * 320 * dt; }
-      if (inp.down('KeyW')) cy -= 260 * dt; if (inp.down('KeyS')) cy += 260 * dt; if (inp.down('KeyA')) cx -= 260 * dt; if (inp.down('KeyD')) cx += 260 * dt;
-      G.specials.aimMove(a, cx, cy, mm);
+      if (mm) {
+        const turn90 = Math.PI / 2 / 0.0021;   // raw mouse px for a 90° view turn
+        const sens = s.sensitivity ?? 1;
+        let cx = mdx * (mm.w / turn90) * sens, cy = mdy * (mm.h / turn90) * sens;
+        if (inp.pad) { const st = Math.max(mm.w, mm.h) * 0.2; inp.padStick(2, 3, _stick, 0.12, 0.96); cx += _stick.x * st * dt; cy += _stick.y * st * dt; inp.padStick(0, 1, _stick, 0.14, 0.95); cx += _stick.x * st * dt; cy += _stick.y * st * dt; }
+        const n = Math.max(mm.w, mm.h) * 0.1 * dt;
+        if (inp.down('KeyW')) cy -= n; if (inp.down('KeyS')) cy += n; if (inp.down('KeyA')) cx -= n; if (inp.down('KeyD')) cx += n;
+        G.specials.aimMove(a, cx, cy, mm);
+      }
       // launch on a fresh press (a trigger still held from shooting when the special started doesn't count)
       const pull = inp.mouse.left || inp.padValue(7) > 0.3;
       if (spx.t < 0.05) this._strikePull = pull;
@@ -136,7 +144,7 @@ export class PlayerController {
     this.computeAim();
   }
 
-  // TAB-map number keys / d-pad: 1–3 teammates, 4 base, 5–9 + 0 team jump beacons (oldest first, as the map lists
+  // TAB-map number keys / d-pad: 1–4 teammates, 5 base, 6–9 + 0 team jump beacons (oldest first, as the map lists
   // them). Alive: jump now. Splatted (queue = true): plan the jump for the respawn instead — it never launches early.
   _mapKeys(queue) {
     const a = this.a, inp = this.input;
@@ -150,10 +158,11 @@ export class PlayerController {
     if (inp.wasPressed('Digit1') || inp.padPressed.has(14)) pick('ally', allies[0]);
     if (inp.wasPressed('Digit2') || inp.padPressed.has(12)) pick('ally', allies[1]);
     if (inp.wasPressed('Digit3') || inp.padPressed.has(15)) pick('ally', allies[2]);
-    if (inp.wasPressed('Digit4') || inp.padPressed.has(13)) pick('base', null);
+    if (inp.wasPressed('Digit4')) pick('ally', allies[3]);
+    if (inp.wasPressed('Digit5') || inp.padPressed.has(13)) pick('base', null);
     if (G.subs) {
       const bs = G.subs.beaconsFor(a.team).sort((x, y) => x.born - y.born);
-      for (let k = 0; k < Math.min(6, bs.length); k++) if (inp.wasPressed('Digit' + ((k + 5) % 10))) pick('beacon', bs[k]);
+      for (let k = 0; k < Math.min(5, bs.length); k++) if (inp.wasPressed('Digit' + ((k + 6) % 10))) pick('beacon', bs[k]);
     }
   }
 
