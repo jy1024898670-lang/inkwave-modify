@@ -4,6 +4,8 @@
 
 <h1 align="center">INKWAVE</h1>
 
+<p align="center"><a href="README.zh-CN.md">📖 简体中文</a></p>
+
 <p align="center">
   An original Splatoon-style 5v5 turf-war shooter that runs in your browser.<br>
   Paint the ground, swim through your ink, out-turf the other team.

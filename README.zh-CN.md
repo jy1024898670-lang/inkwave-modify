@@ -4,6 +4,8 @@
 
 <h1 align="center">INKWAVE</h1>
 
+<p align="center"><a href="README.md">📖 English</a></p>
+
 <p align="center">
   一款在浏览器里运行的原创喷射战士风格 <b>5v5 涂地对战</b>射击游戏。<br>
   涂地、在自己的墨水里游泳、把对面涂个干净。· <b>界面全中文</b>
