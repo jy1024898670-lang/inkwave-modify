@@ -28,6 +28,7 @@ import { BotBrain } from '../game/bots.js';
 import { Boss } from '../boss/boss.js';
 
 const TICK = 1 / 20;
+const SPAWN_HIDE_MAX = 1.5;   // s: max a respawned remote kid stays hidden waiting for its post-respawn sample to play
 
 const r2 = (x) => Math.round(x * 100) / 100;
 const r3 = (x) => Math.round(x * 1000) / 1000;
@@ -418,8 +419,15 @@ export class NetMatch {
       if (n.sjRing > 0.12) { n.sjRing = 0; G.fx?.ring(_v2.copy(n.sjTo).setY(n.sjTo.y + 0.05), UPV, a.color, { radius: 1.6, life: 0.5 }); }
     }
     if (n.spawnPending) {
-      if (S.tp === n.deathTp) { a.character.root.visible = false; return; }
+      // Hidden until the post-respawn sample is actually played, so the kid never flashes up at its death spot.
+      // Safety: when the owner's samples run late (a hitch, a throttled/backgrounded tab) the playback clock can lag
+      // far behind — if the buffer already holds the new-tp sample but we've waited too long, snap to it and show the
+      // kid instead of staying invisible indefinitely (the "invisible but still splattable" desync).
+      const lastB = n.buf.length ? n.buf[n.buf.length - 1] : null;
+      const hasNew = lastB && lastB.tp !== n.deathTp;
+      if (S.tp === n.deathTp && !(hasNew && now() - (n.spawnAt || 0) > SPAWN_HIDE_MAX)) { a.character.root.visible = false; return; }
       n.spawnPending = false;
+      if (hasNew) { a.pos.set(lastB.x, lastB.y, lastB.z); a.vel.set(lastB.vx, lastB.vy, lastB.vz); n.tp = lastB.tp; n.err.set(0, 0, 0); n.errV?.set(0, 0, 0); }
       a.character.setVisible(true);
       const pad = G.level.spawnPads[a.team];
       G.fx?.spawnFlash(_v2.set(a.pos.x, pad.y, a.pos.z), a.color);
@@ -623,7 +631,7 @@ export class NetMatch {
   _remoteRespawn(a) {
     a.alive = true; a.hp = PLAYER.hp; a.invuln = PLAYER.spawnInvuln;
     a.respawnTimer = 0;
-    a.net.spawnPending = true;
+    a.net.spawnPending = true; a.net.spawnAt = now();
   }
 
   // ---- hits (victim's owner) ------------------------------------------------------------------------------------------
