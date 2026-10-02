@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/jaydendavisnc/inkwave/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jaydendavisnc/inkwave/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/jy1024898670-lang/inkwave/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jy1024898670-lang/inkwave/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="three.js r186" src="https://img.shields.io/badge/three.js-r186-000000?logo=three.js&logoColor=white">
   <img alt="No build step" src="https://img.shields.io/badge/build-none%20needed-2ea44f">
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
@@ -85,7 +85,7 @@ A page opened from `localhost` or a LAN address uses that relay automatically; `
 There is no build step. Any static file server works; the included one also serves to your LAN and sends no-cache headers so module updates are never stale.
 
 ```bash
-git clone https://github.com/jaydendavisnc/inkwave.git
+git clone https://github.com/jy1024898670-lang/inkwave.git
 cd inkwave
 npm install      # Electron + the headless tools
 npm start        # the desktop app (Electron)

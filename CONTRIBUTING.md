@@ -5,7 +5,7 @@ Thanks for your interest! INKWAVE is a plain ES-module three.js project with no 
 ## Running locally
 
 ```bash
-git clone https://github.com/jaydendavisnc/inkwave.git
+git clone https://github.com/jy1024898670-lang/inkwave.git
 cd inkwave
 npm install          # only needed for the headless tools (puppeteer-core)
 npm start            # serves http://localhost:8490 (and your LAN address)

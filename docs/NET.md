@@ -168,5 +168,5 @@ Deploy (needs wrangler auth on this machine, e.g. `npx wrangler login`):
 - Origin policy: the Worker admits WebSocket upgrades and `/lobby` only from the Pages origin (incl. preview
   subdomains) and local / LAN dev hosts (`localhost`, `127.0.0.1`, RFC 1918, `*.local`); everything else is a 403.
 - The client finds the relay on its own: local origins → `ws://<host>:8787`, anything else →
-  `wss://inkwave-net.inkwave.workers.dev` (`PROD_RELAY` in `src/net/transport.js` — update it if the Worker is ever
-  redeployed under a different subdomain). `?relay=<ws-url>` still overrides for one page.
+  `wss://inkwave-net.bugyellow.workers.dev` (`PROD_RELAY` in `src/net/transport.js` — update it if the Worker is
+  ever redeployed under a different subdomain). `?relay=<ws-url>` still overrides for one page.

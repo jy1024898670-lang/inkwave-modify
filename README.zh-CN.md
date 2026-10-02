@@ -76,8 +76,8 @@ npm run relay    # ws://<本机>:8787
 没有构建步骤。任何静态文件服务器都可以;自带的这个还会服务局域网,并发送 no-cache 头,模块更新永远不会被缓存卡住。
 
 ```bash
-git clone https://github.com/caoxing9/inkwave-game.git
-cd inkwave-game
+git clone https://github.com/jy1024898670-lang/inkwave.git
+cd inkwave
 npm install      # Electron + 无头测试工具
 npm start        # 桌面版(Electron)
 npm run serve    # 或网页版: http://localhost:8490
@@ -104,7 +104,7 @@ npm run check-maps   # 校验每张地图布局(含据点控制变体)
 
 ```bash
 npx wrangler login      # 一次性,浏览器里授权 Cloudflare 账号
-npm run deploy-relay    # 中继 Worker(+ 两个 Durable Object)→ wss://inkwave-net.inkwave.workers.dev
+npm run deploy-relay    # 中继 Worker(+ 两个 Durable Object)→ wss://inkwave-net.bugyellow.workers.dev
 npm run release         # 构建 dist/ 并发布到 Pages → https://inkwave-2cc.pages.dev
 ```
 
