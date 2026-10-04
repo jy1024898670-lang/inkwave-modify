@@ -180,6 +180,7 @@ const SETTINGS_TABS = [
   ] },
   { id: 'video', label: 'Video', icon: 'monitor', rows: [
     { key: 'quality', label: 'Graphics quality', type: 'seg', options: [['low', 'Low'], ['medium', 'Med'], ['high', 'High'], ['ultra', 'Ultra']], help: 'Resolution scale, shadow detail, anti-aliasing and particle counts.' },
+    { key: 'gpuPref', label: 'Graphics card', type: 'seg', options: [['high', 'High perf.'], ['battery', 'Battery']], help: 'Which GPU the game asks the browser to use on laptops with both built-in and dedicated graphics. High performance picks the dedicated card (smoother); Battery keeps the built-in one (longer battery life). Changes apply after a restart. If the browser is still on the built-in GPU, set it to "High performance" in Windows Settings → System → Display → Graphics (or enable 独显直连 in your laptop tool).' },
     { key: 'fov', label: 'Field of view', type: 'slider', min: 65, max: 100, step: 1, fmt: (v) => Math.round(v) + '°', help: 'Wider shows more of the turf around you.' },
     { key: 'shadows', label: 'Shadows', type: 'toggle', help: 'Soft sun shadows. Turn off for extra speed on older machines.' },
     { key: 'bloom', label: 'Bloom glow', type: 'toggle', help: 'A soft glow around bright ink and specials.' },

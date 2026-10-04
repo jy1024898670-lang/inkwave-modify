@@ -104,7 +104,9 @@ export function gpuInfo(gl) {
 
 export class Renderer {
   constructor(container, settings) {
-    const r = (this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', stencil: false }));
+    // gpuPref (settings): 'battery' asks the OS to stay on the integrated GPU (battery life); anything else requests the
+    // discrete one. powerPreference is only read when the WebGL context is created, so it takes effect on relaunch.
+    const r = (this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: (settings.gpuPref === 'battery') ? 'low-power' : 'high-performance', stencil: false }));
     // Shader status checks make every compile synchronous (the main thread waits on the GPU process for the link
     // result): a mid-game compile then stalls input, netcode and all. Players run without them; ?shadercheck (the
     // smoke test and dev tools) turns them back on so a broken shader still fails loudly.

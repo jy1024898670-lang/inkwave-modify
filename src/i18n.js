@@ -16,6 +16,11 @@ const ZH = {
   'Mixing the ink…': '正在调配墨水…', 'Teaching squids to swim…': '正在教乌贼游泳…', 'Tuning the tentacles…': '正在调校触手…',
   'Warming up…': '热身中…', 'Loading…': '加载中…',
   'Running on the built-in GPU — using medium quality for smoothness. To use the discrete GPU: Windows Settings → System → Display → Graphics, pick this browser and set it to "High performance" (or enable 独显直连 in your laptop tool), then relaunch.': '检测到当前运行在核显上 —— 已自动切换为中等画质以保证流畅。若想使用独显:Windows 设置 → 系统 → 显示 → 图形,选中本浏览器并设为"高性能"(或在笔记本品牌工具中开启独显直连),然后重新打开游戏。',
+  'Graphics card': '显卡', 'High perf.': '高性能', 'Battery': '省电',
+  'Which GPU the game asks the browser to use on laptops with both built-in and dedicated graphics. High performance picks the dedicated card (smoother); Battery keeps the built-in one (longer battery life). Changes apply after a restart. If the browser is still on the built-in GPU, set it to "High performance" in Windows Settings → System → Display → Graphics (or enable 独显直连 in your laptop tool).': '让浏览器在双显卡笔记本上使用哪块显卡。高性能:使用独显(更流畅);省电:使用核显(更省电)。修改后重启游戏生效。如果浏览器仍在用核显,请到 Windows 设置 → 系统 → 显示 → 图形,把本浏览器设为"高性能"(或在笔记本品牌工具中开启独显直连)。',
+  'Detected': '检测到的显卡', 'Built-in GPU': '核显(集显)', 'Discrete GPU': '独显',
+  'Requests the built-in GPU — battery life over frame rate. Applies after a restart.': '请求使用核显 —— 更省电,帧率更低。重启后生效。',
+  'Requests the dedicated GPU on laptops. If the browser is still on the built-in card, switch it in Windows Settings → System → Display → Graphics (or enable 独显直连). Applies after a restart.': '请求笔记本使用独显。如果浏览器仍在用核显,请到 Windows 设置 → 系统 → 显示 → 图形 切换(或开启独显直连)。重启后生效。',
 
   // ---- main menu
   'PLAY': '开始游戏', 'PLAY OFFLINE': '单机游玩', 'OFFLINE': '单机', 'ONLINE': '联机', 'MULTIPLAYER': '联机对战',

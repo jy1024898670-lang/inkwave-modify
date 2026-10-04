@@ -565,6 +565,7 @@ export const DEFAULT_SETTINGS = {
   invertY: false,
   fov: 82,                  // horizontal FOV at 16:9, 65..100
   quality: 'high',          // 'low' | 'medium' | 'high' | 'ultra'
+  gpuPref: 'high',          // WebGL powerPreference: 'high' (discrete GPU) | 'battery' (integrated) — applies on relaunch
   shadows: true,
   bloom: true,
   cameraShake: 1.0,         // 0..1

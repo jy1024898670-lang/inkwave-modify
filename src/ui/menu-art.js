@@ -650,6 +650,25 @@ function previewQuality(ctx) {
   return { el, set };
 }
 
+function previewGpu(ctx) {
+  // Detected card (engine exposes it on G.renderer's owner — read lazily, the renderer may not exist in previews run before boot)
+  let gpu = null; try { gpu = (window.__inkwave && window.__inkwave.R && window.__inkwave.R.gpu) || null; } catch (e) { gpu = null; }
+  const name = gpu && gpu.name ? gpu.name.replace(/^ANGLE \((?:[^,]+),\s*/i, '').replace(/,\s*(?:OpenGL|Vulkan).*/i, '') : '';
+  const iGPU = !!(gpu && gpu.isIGPU);
+  const el = h('div', { class: 'iw-pv iw-pv--gpu', html: `
+    <div class="iw-pv-chips" style="flex-direction:column;gap:8px">
+      <span class="iw-pv-chip"><small>Detected</small><b class="iw-pv-gpu-name">${name || '—'}</b></span>
+      <span class="iw-pv-chip ${iGPU ? 'is-off' : ''}"><small>Status</small><b>${iGPU ? 'Built-in GPU' : 'Discrete GPU'}</b></span>
+    </div>
+    <div class="iw-pv-cap"></div>` });
+  const cap = el.querySelector('.iw-pv-cap');
+  const set = (v) => {
+    cap.innerHTML = v === 'battery' ? 'Requests the <b>built-in</b> GPU — battery life over frame rate. Applies after a restart.' : 'Requests the <b>dedicated</b> GPU on laptops. If the browser is still on the built-in card, switch it in Windows Settings → System → Display → Graphics (or enable 独显直连). Applies after a restart.';
+  };
+  set(ctx.value);
+  return { el, set };
+}
+
 function previewShadows(ctx) {
   const el = h('div', { class: 'iw-pv iw-pv--shadow', html: frameSVG(`
     <circle cx="262" cy="34" r="17" fill="#fff6c8"/><circle cx="262" cy="34" r="27" fill="#fff6c8" opacity=".35"/>
@@ -894,6 +913,7 @@ export function createPreview(key, ctx = {}) {
     case 'bloom': return previewBloom(ctx);
     case 'showFps': return previewFps(ctx);
     case 'minimap': return previewMinimap(ctx);
+    case 'gpuPref': return previewGpu(ctx);
     case 'cameraShake': return previewShake(ctx);
     case 'aimAssist': return previewAimAssist(ctx);
     case 'aimAssistMouse': return previewAimMouse(ctx);
