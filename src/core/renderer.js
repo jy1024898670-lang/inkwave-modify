@@ -89,6 +89,19 @@ function isAppleGPU(gl) {
   return /Apple/i.test(name) && !/Intel|AMD|Radeon|NVIDIA/i.test(name);
 }
 
+// Integrated-GPU signature: laptops on the "balanced/auto" Windows graphics profile hand WebGL to the iGPU
+// (powerPreference:'high-performance' alone does not win over the OS preference). Detecting the name lets the
+// game tell the player to switch to the discrete GPU (or enable "独显直连") instead of silently chugging.
+export function gpuInfo(gl) {
+  const ext = gl.getExtension('WEBGL_debug_renderer_info');
+  const name = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+  const dGPU = /NVIDIA|GeForce|\bRTX\b|\bGTX\b|\bArc\b|\bRX\s?\d{3,4}\b/i.test(name);
+  if (dGPU) return { name, isIGPU: false };
+  const iGPU = /\biGPU\b|\bUHD\b|\bIris\b|\bVega\b|\bHD Graphics\b|Intel\(R\)?\s+Radeon|AMD Radeon\(?TM\)?\s+(?:Graphics|\d|R\d{1,3}M)\b/i.test(name);
+  // fallback: an Intel/AMD string with no discrete-GPU signature (older names like "AMD Radeon HD 8570M")
+  return { name, isIGPU: iGPU || /\bIntel\b|\bAMD\b/i.test(name) };
+}
+
 export class Renderer {
   constructor(container, settings) {
     const r = (this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', stencil: false }));
@@ -112,6 +125,7 @@ export class Renderer {
     const dbg = gl.getExtension('WEBGL_debug_renderer_info');
     const gpuName = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
     this.d3d11 = QP.get('d3d11fix') !== '0' && (QP.get('d3d11fix') === '1' || /Direct3D11|D3D11/i.test(gpuName));
+    this.gpu = gpuInfo(gl);   // { name, isIGPU } — main.js auto-tunes quality + hints the user on integrated GPUs
     r.domElement.id = 'game-canvas';
     this.container = container;
     this.scene = null; this.camera = null;

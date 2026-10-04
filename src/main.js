@@ -89,6 +89,17 @@ class Game {
     // renderer / scene
     this.R = new Renderer(app, this.settings);
     G.renderer = this.R.renderer;
+    // Laptop on an integrated GPU (the system graphics profile kept WebGL on the iGPU): the default 'high'
+    // preset will chug. Drop to 'medium' once — never below what the player already chose themselves — and
+    // tell them how to put the discrete GPU in charge.
+    if (this.R.gpu?.isIGPU && !this.settings.igpuTuned) {
+      if (this.settings.quality === DEFAULT_SETTINGS.quality) { this.settings.quality = 'medium'; saveJSON('inkwave.settings', this.settings); }
+      this.settings.igpuTuned = true;
+      saveJSON('inkwave.settings', this.settings);
+      setTimeout(() => {
+        this.menus?.toast('Running on the built-in GPU — using medium quality for smoothness. To use the discrete GPU: Windows Settings → System → Display → Graphics, pick this browser and set it to "High performance" (or enable 独显直连 in your laptop tool), then relaunch.', { kind: 'info', ms: 9000 });
+      }, 2500);
+    }
     installDiag({ canvas: this.R.renderer.domElement, R: this.R });   // auto-on from localhost; ?diag=1 forces it
     // Black-flash guard: while the GPU context is lost (momentary driver resets on real hardware
     // blank the canvas until three.js reinitializes) cover the screen instead of showing a black flash.

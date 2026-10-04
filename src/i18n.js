@@ -15,6 +15,7 @@ const ZH = {
   'Building the plaza…': '正在搭建广场…', 'Filling the harbor…': '正在给港口注水…', 'Mixing ink…': '正在调配墨水…',
   'Mixing the ink…': '正在调配墨水…', 'Teaching squids to swim…': '正在教乌贼游泳…', 'Tuning the tentacles…': '正在调校触手…',
   'Warming up…': '热身中…', 'Loading…': '加载中…',
+  'Running on the built-in GPU — using medium quality for smoothness. To use the discrete GPU: Windows Settings → System → Display → Graphics, pick this browser and set it to "High performance" (or enable 独显直连 in your laptop tool), then relaunch.': '检测到当前运行在核显上 —— 已自动切换为中等画质以保证流畅。若想使用独显:Windows 设置 → 系统 → 显示 → 图形,选中本浏览器并设为"高性能"(或在笔记本品牌工具中开启独显直连),然后重新打开游戏。',
 
   // ---- main menu
   'PLAY': '开始游戏', 'PLAY OFFLINE': '单机游玩', 'OFFLINE': '单机', 'ONLINE': '联机', 'MULTIPLAYER': '联机对战',
