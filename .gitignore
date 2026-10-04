@@ -18,4 +18,5 @@ songs/manifest.json
 # local runtime artifacts (probes / relay)
 diag-log.jsonl
 tools/relay.log
+tools/serve.log
 tools/shots/
